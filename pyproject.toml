@@ -1,0 +1,35 @@
+[tool.poetry]
+name = "srt-gpt-translator"
+version = "0.1.0"
+description = ""
+authors = ["blav <blav@actar.us>"]
+readme = "README.md"
+
+[[tool.poetry.packages]]
+include = "srt_gpt_translator"
+from = "src"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+openai = "*"
+tqdm = "*"
+click = "*"
+python-dotenv = "*"
+rich-click = "*"
+pysrt = "*"
+beautifulsoup4 = "*"
+pydantic = "*"
+tiktoken = "*"
+jinja2 = "^3.1.4"
+
+
+[tool.poetry.scripts]
+srt-gpt-translator = "srt_gpt_translator.cli:main"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
