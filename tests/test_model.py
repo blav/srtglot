@@ -7,6 +7,7 @@ from fixtures import srt_file
 
 def test_should_translate_subtitle(srt_file: Path):
     sub = [*parse(srt_file)][0]
+    assert sub.text_lines == ["As the first century", "", "of the Targaryen dynasty"]
     translated = sub.translate(
         ["AS THE FIRST CENTURY", "\n", "OF THE TARGARYEN DYNASTY"]
     )

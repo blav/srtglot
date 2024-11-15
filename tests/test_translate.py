@@ -31,7 +31,7 @@ def test__to_prompt_input():
         )
     ]
 
-    assert _to_prompt_input(batch) == "Hello\nworld\nHow\nare\nyou\n?"
+    assert _to_prompt_input(batch) == "[sentence 1]\nHello\nworld\nHow\nare\nyou\n?"
 
 
 def test_translator():
@@ -40,7 +40,7 @@ def test_translator():
         create_client.return_value = client
 
         choice = MagicMock(name="choice")
-        choice.text = "Bonjour\nmonde\nComment\nça\nva?"
+        choice.text = "[sentence 1]\nBonjour\nmonde\nComment\nça\nva?"
 
         completion = MagicMock(name="completion")
         completion.choices = [choice]

@@ -1,8 +1,11 @@
+import re
 from functools import lru_cache
 from typing import Callable, Iterable
+from pathlib import Path
+
 import openai
 from jinja2 import Template
-from pathlib import Path
+
 from .model import Sentence, TranslatedSubtitle, Subtitle
 from .sentence import sentences_batcher
 
@@ -17,14 +20,19 @@ def _get_system_prompt(language: str) -> str:
 
 
 def _to_text(batch: list[Sentence]) -> list[str]:
-    return [
-        line
-        for sentence in batch
-        for sub in sentence.blocks
-        for multiline in sub.text
-        for line in multiline.lines
-        if line.strip()
-    ]
+    def lines(sentence: Sentence) -> Iterable[str]:
+        for block in sentence.blocks:
+            for multiline in block.text:
+                for line in multiline.lines:
+                    if line.strip():
+                        yield line
+
+    def batch_lines() -> Iterable[str]:
+        for i, sentence in enumerate(batch):
+            yield f"[sentence {i + 1}]"
+            yield from lines(sentence)
+
+    return [*batch_lines()]
 
 
 def _to_prompt_input(batch: list[Sentence]) -> str:
@@ -60,18 +68,20 @@ def translator(
                 f"Original: {len(batch)}, Translated: {len(completion)}"
             )
 
-        def subtitles() -> Iterable[Subtitle]:
-            for sentence in batch:
-                yield from sentence.blocks
+        completion_iter = iter(completion)
+        for sentence in batch:
+            delimiter = next(completion_iter)
+            if not re.match(r"\[sentence \d+\]", delimiter):
+                raise ValueError(f"delimiter expected, got {delimiter}")
+            
+            for sub in sentence.blocks:
+                translated_text = []
+                for multiline in sub.text:
+                    for line in multiline.lines:
+                        translated_text.append(next(completion_iter) if line.strip() else "")
 
-        translations = iter(completion)
-        for subtitle in subtitles():
-            translated_text = []
-            for multiline in subtitle.text:
-                for line in multiline.lines:
-                    translated_text.append(next(translations) if line else "")
+                yield sub.translate(translated_text)
 
-            yield subtitle.translate(translated_text)
 
     def translate(sentences: Iterable[Sentence]) -> Iterable[TranslatedSubtitle]:
         for batch in batcher(sentences):
