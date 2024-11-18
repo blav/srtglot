@@ -40,11 +40,11 @@ def test_translator():
         create_client.return_value = client
 
         choice = MagicMock(name="choice")
-        choice.text = "[sentence 1]\nBonjour\nmonde\nComment\nça\nva?"
+        choice.message.content = "[sentence 1]\nBonjour\nmonde\nComment\nça\nva?"
 
         completion = MagicMock(name="completion")
         completion.choices = [choice]
-        client.completions.create.return_value = completion
+        client.chat.completions.create.return_value = completion
 
         sentence = Sentence(
             blocks=[
@@ -70,3 +70,6 @@ def test_translator():
 
         result = [*translate([sentence])]
         assert format_translated(result) == "Bonjour\nmonde\n\nComment\nça\nva?"
+
+
+        

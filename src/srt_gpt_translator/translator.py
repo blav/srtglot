@@ -73,28 +73,32 @@ def translator(
             delimiter = next(completion_iter)
             if not re.match(r"\[sentence \d+\]", delimiter):
                 raise ValueError(f"delimiter expected, got {delimiter}")
-            
+
             for sub in sentence.blocks:
                 translated_text = []
                 for multiline in sub.text:
                     for line in multiline.lines:
-                        translated_text.append(next(completion_iter) if line.strip() else "")
+                        translated_text.append(
+                            next(completion_iter) if line.strip() else ""
+                        )
 
                 yield sub.translate(translated_text)
 
-
     def translate(sentences: Iterable[Sentence]) -> Iterable[TranslatedSubtitle]:
         for batch in batcher(sentences):
-            completion: openai.types.Completion = client.completions.create(
+            completion: openai.types.Completion = client.chat.completions.create(
                 model=model,
                 messages=[
                     system_message,
-                    {"role": "user", "content": _to_prompt_input(batch)},
+                    {
+                        "role": "user",
+                        "content": _to_prompt_input(batch),
+                    },
                 ],
             )
 
             yield from create_translated_subtitle(
-                batch, completion.choices[0].text.split("\n")
+                batch, completion.choices[0].message.content.split("\n")
             )
 
     return translate
