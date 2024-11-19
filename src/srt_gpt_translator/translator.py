@@ -1,13 +1,15 @@
 import re
 from functools import lru_cache
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Optional
 from pathlib import Path
 
 import openai
+from openai.types.chat import ChatCompletion
 from jinja2 import Template
 
-from .model import Sentence, TranslatedSubtitle, Subtitle
+from .model import Sentence, TranslatedSubtitle
 from .sentence import sentences_batcher
+from .cache import Cache
 
 
 @lru_cache
@@ -49,10 +51,11 @@ def translator(
     language: str,
     max_tokens: int,
     api_key: str,
-    cache_dir: Path = None,
+    cache_dir: Optional[Path] = None,
 ) -> Callable[[Iterable[Sentence]], Iterable[TranslatedSubtitle]]:
     batcher = sentences_batcher(model, max_tokens)
-
+    cache = Cache(cache_dir=cache_dir)
+    
     system_message = {
         "role": "system",
         "content": _get_system_prompt(language),
@@ -87,7 +90,12 @@ def translator(
 
     def translate(sentences: Iterable[Sentence]) -> Iterable[TranslatedSubtitle]:
         for batch in batcher(sentences):
-            completion: openai.types.Completion = client.chat.completions.create(
+            cached = cache.get(batch)
+            if cached:
+                yield from cached
+                continue
+            
+            completion: ChatCompletion = client.chat.completions.create(
                 model=model,
                 messages=[
                     system_message,
@@ -98,8 +106,9 @@ def translator(
                 ],
             )
 
+            content = completion.choices[0].message.content
             yield from create_translated_subtitle(
-                batch, completion.choices[0].message.content.split("\n")
+                batch, content.split("\n") if content else []
             )
 
     return translate

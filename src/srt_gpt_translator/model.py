@@ -70,10 +70,10 @@ class Sentence:
 class TranslatedSubtitle:
     start: str
     end: str
-    text: list[str]
+    text: str
 
     @classmethod
-    def create(cls, start: datetime.time, end: datetime.time, text: list[str]):
+    def create(cls, start: datetime.time, end: datetime.time, text: str) -> "TranslatedSubtitle":
         return TranslatedSubtitle(
             start=start.strftime("%H:%M:%S,%f"),
             end=end.strftime("%H:%M:%S,%f"),

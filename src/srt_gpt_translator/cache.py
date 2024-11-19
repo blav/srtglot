@@ -7,7 +7,7 @@ from .model import Sentence, TranslatedSubtitle
 
 @dataclass
 class Cache:
-    cache_dir: Path
+    cache_dir: Path | None
 
     def __post_init__(self):
         if self.cache_dir is None:
@@ -19,7 +19,7 @@ class Cache:
         if not self.cache_dir.is_dir():
             raise ValueError(f"{self.cache_dir} is not a directory")
 
-    def get(self, key: list[Sentence]) -> list[TranslatedSubtitle]:
+    def get(self, key: list[Sentence]) -> list[TranslatedSubtitle] | None:
         if self.cache_dir is None:
             return None
         
@@ -36,6 +36,9 @@ class Cache:
             json.dump([vars(subtitle) for subtitle in value], f)
 
     def _to_entry_path(self, key: list[Sentence]) -> Path:
+        if self.cache_dir is None:
+            raise ValueError("Cache directory is not set")
+        
         sha1 = hashlib.sha1()
         for sentence in key:
             for block in sentence.blocks:
@@ -43,4 +46,4 @@ class Cache:
                     for line in multiline.lines:
                         sha1.update(line.encode())
 
-        return Path(self.cache_dir) / (sha1.hexdigest() + ".json")
+        return self.cache_dir / (sha1.hexdigest() + ".json")
