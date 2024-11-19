@@ -7,7 +7,7 @@ import openai
 from openai.types.chat import ChatCompletion
 from jinja2 import Template
 
-from .model import Sentence, TranslatedSubtitle
+from .model import Sentence, TranslatedSubtitle, TranslatorError
 from .sentence import sentences_batcher
 from .cache import Cache
 
@@ -55,7 +55,7 @@ def translator(
 ) -> Callable[[Iterable[Sentence]], Iterable[TranslatedSubtitle]]:
     batcher = sentences_batcher(model, max_tokens)
     cache = Cache(cache_dir=cache_dir)
-    
+
     system_message = {
         "role": "system",
         "content": _get_system_prompt(language),
@@ -67,7 +67,7 @@ def translator(
         batch: list[Sentence], completion: list[str]
     ) -> Iterable[TranslatedSubtitle]:
         if len(_to_text(batch)) != len(completion):
-            raise ValueError(
+            raise TranslatorError(
                 f"Number of sentences in original and translated text must match. "
                 f"Original: {len(batch)}, Translated: {len(completion)}"
             )
@@ -76,7 +76,7 @@ def translator(
         for sentence in batch:
             delimiter = next(completion_iter)
             if not re.match(r"\[sentence \d+\]", delimiter):
-                raise ValueError(f"delimiter expected, got {delimiter}")
+                raise TranslatorError(f"delimiter expected, got {delimiter}")
 
             for sub in sentence.blocks:
                 translated_text = []
@@ -94,7 +94,7 @@ def translator(
             if cached:
                 yield from cached
                 continue
-            
+
             completion: ChatCompletion = client.chat.completions.create(
                 model=model,
                 messages=[
