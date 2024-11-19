@@ -29,6 +29,7 @@ srt-gpt-translator = "srt_gpt_translator.cli:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
+mypy = "^1.13.0"
 
 [build-system]
 requires = ["poetry-core"]
