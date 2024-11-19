@@ -1,6 +1,5 @@
 from pathlib import Path
 import rich_click as click
-import pysrt
 from .parser import parse
 
 
