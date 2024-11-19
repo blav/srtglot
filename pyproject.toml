@@ -20,8 +20,8 @@ pysrt = "*"
 beautifulsoup4 = "*"
 pydantic = "*"
 tiktoken = "*"
-jinja2 = "^3.1.4"
-tenacity = "^9.0.0"
+jinja2 = "*"
+tenacity = "*"
 
 
 [tool.poetry.scripts]
@@ -29,8 +29,8 @@ srt-gpt-translator = "srt_gpt_translator.cli:main"
 
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.3"
-mypy = "^1.13.0"
+pytest = "*"
+mypy = "*"
 
 [build-system]
 requires = ["poetry-core"]
