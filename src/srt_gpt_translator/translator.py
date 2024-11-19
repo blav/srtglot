@@ -49,6 +49,7 @@ def translator(
     language: str,
     max_tokens: int,
     api_key: str,
+    cache_dir: Path = None,
 ) -> Callable[[Iterable[Sentence]], Iterable[TranslatedSubtitle]]:
     batcher = sentences_batcher(model, max_tokens)
 

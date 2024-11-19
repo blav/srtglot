@@ -1,15 +1,15 @@
+import datetime
 from unittest.mock import MagicMock, patch
 from srt_gpt_translator.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
 from srt_gpt_translator.translator import _to_prompt_input, translator
+from bs4 import BeautifulSoup
 
-
-def format_translated(translated_text: list[TranslatedSubtitle]) -> str:
-    return " ".join(
+def format_translated(subs: list[TranslatedSubtitle]) -> str:
+    return "\n".join(
         [
-            line
-            for sub in translated_text
-            for line in sub.translated_text
-            if line.strip()
+            line.text.strip()
+            for line in subs
+            if line.text.strip()
         ]
     )
 
@@ -49,9 +49,9 @@ def test_translator():
         sentence = Sentence(
             blocks=[
                 Subtitle(
-                    start=None,
-                    end=None,
-                    soup=None,
+                    start=datetime.time(),
+                    end=datetime.time(),
+                    soup=BeautifulSoup("<i>Hello</i><i>world</i>\n<i>How</i><i>are</i><i>you?</i>", "html.parser"),
                     text=[
                         Multiline(
                             lines=["Hello", "world", "", "How", "are", "you?"]
@@ -69,7 +69,7 @@ def test_translator():
         )
 
         result = [*translate([sentence])]
-        assert format_translated(result) == "Bonjour\nmonde\n\nComment\nça\nva?"
+        assert format_translated(result) == "<i>Bonjour</i><i>monde</i>\n<i>Comment</i><i>ça</i><i>va?</i>"
 
 
         

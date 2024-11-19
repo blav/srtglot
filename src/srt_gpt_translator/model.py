@@ -1,11 +1,12 @@
-from dataclasses import dataclass
+import datetime
+import copy
+from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Iterable
 from bs4 import BeautifulSoup
-from datetime import time
 
 
-@dataclass
+@dataclass(frozen=True)
 class Multiline:
     lines: list[str]
 
@@ -13,10 +14,10 @@ class Multiline:
         return len(self.lines)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Subtitle:
-    start: time
-    end: time
+    start: datetime.time
+    end: datetime.time
     text: list[Multiline]
     soup: BeautifulSoup
 
@@ -34,12 +35,14 @@ class Subtitle:
                 yield "\n".join(translated_text[index : index + len(block.lines)])
                 index += len(block.lines)
 
-        return TranslatedSubtitle(
+        soup = copy.deepcopy(self.soup)
+        for t, element in zip(translated_text, soup.find_all(string=True)):
+            element.replace_with(t if t else "\n")
+
+        return TranslatedSubtitle.create(
             start=self.start,
             end=self.end,
-            text=self.text,
-            soup=self.soup,
-            translated_text=[*collect_lines()],
+            text=str(soup),
         )
 
     @cached_property
@@ -50,7 +53,7 @@ class Subtitle:
         return len(self.text_lines)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Sentence:
     blocks: list[Subtitle]
 
@@ -63,13 +66,16 @@ class Sentence:
         return sum([len(b) for b in self.blocks])
 
 
-@dataclass
-class TranslatedSubtitle(Subtitle):
-    translated_text: list[str]
+@dataclass(frozen=True)
+class TranslatedSubtitle:
+    start: str
+    end: str
+    text: list[str]
 
-    @cached_property
-    def format_translated(self) -> str:
-        for t, element in zip(self.translated_text, self.soup.find_all(string=True)):
-            element.replace_with(t)
-
-        return str(self.soup)
+    @classmethod
+    def create(cls, start: datetime.time, end: datetime.time, text: list[str]):
+        return TranslatedSubtitle(
+            start=start.strftime("%H:%M:%S,%f"),
+            end=end.strftime("%H:%M:%S,%f"),
+            text=text,
+        )

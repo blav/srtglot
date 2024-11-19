@@ -16,7 +16,7 @@ def parse(input: Path) -> Generator[Subtitle, None, None]:
             end=sub.end.to_time(),
             soup=soup,
             text=[
-                Multiline(block.strip().split("\n") if block.strip() != "\n" else [""])
+                Multiline(block.strip().split("\n"))
                 for block in soup.find_all(string=True)
             ],
         )

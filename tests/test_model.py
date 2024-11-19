@@ -13,7 +13,7 @@ def test_should_translate_subtitle(srt_file: Path):
     )
 
     assert (
-        translated.format_translated
+        translated.text
         == "<i>AS THE FIRST CENTURY</i>\n<i>OF THE TARGARYEN DYNASTY</i>"
     )
 
