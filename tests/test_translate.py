@@ -96,8 +96,4 @@ def test_should_get_llm_completions_from_cache_when_cache_is_present(
 
         translate = translator(**translator_params)
         result = [*translate([sentence])]
-        assert (
-            format_translated(result)
-            == "Bonjour\nmonde\nComment\nça\nva?"
-        )
-
+        assert format_translated(result) == "Bonjour\nmonde\nComment\nça\nva?"

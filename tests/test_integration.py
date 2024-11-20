@@ -16,6 +16,6 @@ def _test_integration(srt_file: Path):
     )
 
     subtitles = parse(srt_file)
-    sentences=[*collect_sentences(subtitles=subtitles)][:50]
-    translated=[*translate(sentences)]
+    sentences = [*collect_sentences(subtitles=subtitles)][:50]
+    translated = [*translate(sentences)]
     print(translated)

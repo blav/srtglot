@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Language(Enum):
     AF = "Afrikaans"
     SQ = "Albanian"

@@ -121,9 +121,11 @@ def translator(
                 )
 
                 content = completion.choices[0].message.content
-                translated_batch = [*create_translated_subtitle(
-                    batch, content.split("\n") if content else []
-                )]
+                translated_batch = [
+                    *create_translated_subtitle(
+                        batch, content.split("\n") if content else []
+                    )
+                ]
 
                 cache.put(batch, translated_batch)
 

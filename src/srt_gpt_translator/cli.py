@@ -54,13 +54,20 @@ from rich.progress import Progress
     show_default=True,
     type=click.Path(exists=False, dir_okay=True, file_okay=False, path_type=Path),
 )
-def main(target_language: Language, input: Path, limit: int, model: str, max_tokens: int, cache_dir: Path):
+def main(
+    target_language: Language,
+    input: Path,
+    limit: int,
+    model: str,
+    max_tokens: int,
+    cache_dir: Path,
+):
     api_key = os.environ["OPENAI_API_KEY"]
     if not api_key:
         raise click.ClickException(
             "Please set the OPENAI_API_KEY environment variable or .env file with your OpenAI API key."
         )
-    
+
     if not cache_dir.exists():
         cache_dir.mkdir(parents=True)
 
