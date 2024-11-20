@@ -26,9 +26,10 @@ def token_counter(model: str) -> Callable[[Sentence], int]:
     return count_tokens
 
 
+Batcher = Callable[[Iterable[Sentence]], Iterable[List[Sentence]]]
 def sentences_batcher(
     model: str, max_tokens: int
-) -> Callable[[Iterable[Sentence]], Iterable[List[Sentence]]]:
+) -> Batcher:
     counter = token_counter(model)
 
     def batch_sentences(sentences: Iterable[Sentence]) -> Iterable[List[Sentence]]:

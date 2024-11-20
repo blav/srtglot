@@ -78,9 +78,6 @@ def main(
             "Please set the OPENAI_API_KEY environment variable or .env file with your OpenAI API key."
         )
 
-    if not cache_dir.exists():
-        cache_dir.mkdir(parents=True)
-
     language = Language[target_language.upper()]
 
     statistics = Statistics()

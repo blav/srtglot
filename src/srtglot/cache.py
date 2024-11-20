@@ -10,16 +10,6 @@ from .languages import Language
 class Cache:
     cache_dir: Path | None
 
-    def __post_init__(self):
-        if self.cache_dir is None:
-            return
-
-        if not self.cache_dir.exists():
-            self.cache_dir.mkdir(parents=True)
-
-        if not self.cache_dir.is_dir():
-            raise ValueError(f"{self.cache_dir} is not a directory")
-
     def get(self, key: list[Sentence]) -> list[TranslatedSubtitle] | None:
         if self.cache_dir is None:
             return None
@@ -55,12 +45,11 @@ class Cache:
     @classmethod
     def create(cls, cache_dir: Path | None, language: Language) -> "Cache":
         if cache_dir is not None:
-            cache_dir = cache_dir.expanduser().resolve()
-            if cache_dir is None:
-                return Cache(cache_dir=None)
-
-            cache_dir = cache_dir / language.name
+            cache_dir = cache_dir.expanduser().resolve() / language.name
             if not cache_dir.exists():
                 cache_dir.mkdir(parents=True)
+
+            if not cache_dir.is_dir():
+                raise ValueError(f"{cache_dir} is not a directory")
 
         return Cache(cache_dir=cache_dir)
