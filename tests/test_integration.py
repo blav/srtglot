@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from srt_gpt_translator.translator import translator
-from srt_gpt_translator.parser import parse
-from srt_gpt_translator.sentence import collect_sentences
+from srtglot.translator import translator
+from srtglot.parser import parse
+from srtglot.sentence import collect_sentences
 from fixtures import srt_file
 
 

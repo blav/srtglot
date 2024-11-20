@@ -1,9 +1,9 @@
 from datetime import time
 from pathlib import Path
 import json
-from srt_gpt_translator.cache import Cache
-from srt_gpt_translator.model import Sentence, TranslatedSubtitle, Subtitle, Multiline
-from srt_gpt_translator.languages import Language
+from srtglot.cache import Cache
+from srtglot.model import Sentence, TranslatedSubtitle, Subtitle, Multiline
+from srtglot.languages import Language
 from tempfile import TemporaryDirectory
 from bs4 import BeautifulSoup
 import pytest

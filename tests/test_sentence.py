@@ -2,13 +2,13 @@ from contextlib import ExitStack
 from pathlib import Path
 import datetime
 from unittest.mock import MagicMock, patch
-from srt_gpt_translator.sentence import (
+from srtglot.sentence import (
     collect_sentences,
     token_counter,
     sentences_batcher,
 )
-from srt_gpt_translator.parser import parse
-from srt_gpt_translator.model import Sentence, Subtitle, Multiline
+from srtglot.parser import parse
+from srtglot.model import Sentence, Subtitle, Multiline
 from fixtures import srt_file
 
 
@@ -36,7 +36,7 @@ def test_should_batch_sentences():
         counter = MagicMock()
         counter.side_effect = [2, 1, 1, 3, 2, 1]
         token_counter = stack.enter_context(
-            patch("srt_gpt_translator.sentence.token_counter")
+            patch("srtglot.sentence.token_counter")
         )
         token_counter.return_value = counter
 

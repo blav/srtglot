@@ -1,6 +1,6 @@
 from pathlib import Path
-from srt_gpt_translator import parser
-from srt_gpt_translator.model import Subtitle, Multiline
+from srtglot import parser
+from srtglot.model import Subtitle, Multiline
 from datetime import time
 from fixtures import srt_file
 

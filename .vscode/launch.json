@@ -8,7 +8,7 @@
             "name": "main",
             "type": "debugpy",
             "request": "launch",
-            "module": "srt_gpt_translator.cli",
+            "module": "srtglot.cli",
             "cwd": "${workspaceFolder}/src",
             "justMyCode": false,
             "args": [

@@ -1,7 +1,7 @@
 from datetime import time
 from pathlib import Path
-from srt_gpt_translator.model import Subtitle, Multiline
-from srt_gpt_translator.parser import parse
+from srtglot.model import Subtitle, Multiline
+from srtglot.parser import parse
 from fixtures import srt_file
 
 

@@ -1,9 +1,9 @@
 import datetime
 from unittest.mock import MagicMock, patch
-from srt_gpt_translator.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
-from srt_gpt_translator.translator import _to_prompt_input, translator
-from srt_gpt_translator.languages import Language
-from srt_gpt_translator.statistics import Statistics
+from srtglot.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
+from srtglot.translator import _to_prompt_input, translator
+from srtglot.languages import Language
+from srtglot.statistics import Statistics
 from bs4 import BeautifulSoup
 import pytest
 
@@ -65,7 +65,7 @@ def translator_params() -> dict:
 def test_should_get_llm_completions_when_cache_is_missing(
     sentence: Sentence, translator_params: dict
 ):
-    with patch("srt_gpt_translator.translator._create_openai_client") as create_client:
+    with patch("srtglot.translator._create_openai_client") as create_client:
         client = MagicMock(name="client")
         create_client.return_value = client
 
@@ -88,7 +88,7 @@ def test_should_get_llm_completions_when_cache_is_missing(
 def test_should_get_llm_completions_from_cache_when_cache_is_present(
     sentence: Sentence, translator_params: dict
 ):
-    with patch("srt_gpt_translator.translator.Cache.create") as cache:
+    with patch("srtglot.translator.Cache.create") as cache:
         cache.return_value.get.return_value = [
             TranslatedSubtitle(
                 start="00:00:00,000",
