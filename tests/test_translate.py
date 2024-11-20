@@ -2,6 +2,7 @@ import datetime
 from unittest.mock import MagicMock, patch
 from srt_gpt_translator.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
 from srt_gpt_translator.translator import _to_prompt_input, translator
+from srt_gpt_translator.languages import Language
 from bs4 import BeautifulSoup
 import pytest
 
@@ -52,7 +53,7 @@ def sentence() -> Sentence:
 def translator_params() -> dict:
     return {
         "model": "gpt-4o",
-        "language": "english",
+        "language": Language.EN,
         "max_tokens": 100,
         "api_key": "sk-xxx",
     }
@@ -84,7 +85,7 @@ def test_should_get_llm_completions_when_cache_is_missing(
 def test_should_get_llm_completions_from_cache_when_cache_is_present(
     sentence: Sentence, translator_params: dict
 ):
-    with patch("srt_gpt_translator.translator.Cache") as cache:
+    with patch("srt_gpt_translator.translator.Cache.create") as cache:
         cache.return_value.get.return_value = [
             TranslatedSubtitle(
                 start="00:00:00,000",

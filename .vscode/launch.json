@@ -12,10 +12,12 @@
             "cwd": "${workspaceFolder}/src",
             "justMyCode": false,
             "args": [
-                "--input",
-                "~/Downloads/GOT/HOD 1/Subs/E01/2_English.srt",
                 "--target-language",
-                "chinese",
+                "french",
+                "--input",
+                "../tests/hod.srt",
+                "--limit",
+                "3"
             ],
         },
         {

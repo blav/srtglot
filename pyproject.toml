@@ -22,10 +22,11 @@ pydantic = "*"
 tiktoken = "*"
 jinja2 = "*"
 tenacity = "*"
+rich = "*"
 
 
 [tool.poetry.scripts]
-srt-gpt-translator = "srt_gpt_translator.cli:main"
+srtx = "srt_gpt_translator.cli:main"
 
 
 [tool.poetry.group.dev.dependencies]

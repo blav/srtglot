@@ -2,14 +2,17 @@ import re
 from functools import lru_cache
 from typing import Callable, Iterable, Optional
 from pathlib import Path
+from itertools import islice
 
 import openai
 from openai.types.chat import ChatCompletion
 from jinja2 import Template
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from .model import Sentence, TranslatedSubtitle, TranslatorError
 from .sentence import sentences_batcher
 from .cache import Cache
+from .languages import Language
 
 
 @lru_cache
@@ -17,8 +20,8 @@ def _get_system_prompt_template() -> Template:
     return Template((Path(__file__).parent / "prompt.jinja").read_text())
 
 
-def _get_system_prompt(language: str) -> str:
-    return _get_system_prompt_template().render(language=language)
+def _get_system_prompt(language: Language) -> str:
+    return _get_system_prompt_template().render(language=language.value)
 
 
 def _to_text(batch: list[Sentence]) -> list[str]:
@@ -48,13 +51,14 @@ def _create_openai_client(*, api_key):
 def translator(
     *,
     model: str,
-    language: str,
+    language: Language,
     max_tokens: int,
     api_key: str,
+    limit: int = 0,
     cache_dir: Optional[Path] = None,
 ) -> Callable[[Iterable[Sentence]], Iterable[TranslatedSubtitle]]:
     batcher = sentences_batcher(model, max_tokens)
-    cache = Cache(cache_dir=cache_dir)
+    cache = Cache.create(cache_dir=cache_dir, language=language)
 
     system_message = {
         "role": "system",
@@ -89,26 +93,42 @@ def translator(
                 yield sub.translate(translated_text)
 
     def translate(sentences: Iterable[Sentence]) -> Iterable[TranslatedSubtitle]:
-        for batch in batcher(sentences):
+        batches = batcher(sentences)
+        if limit > 0:
+            batches = islice(batches, limit)
+
+        for batch in batches:
             cached = cache.get(batch)
             if cached:
                 yield from cached
                 continue
 
-            completion: ChatCompletion = client.chat.completions.create(
-                model=model,
-                messages=[
-                    system_message,
-                    {
-                        "role": "user",
-                        "content": _to_prompt_input(batch),
-                    },
-                ],
+            @retry(
+                retry=retry_if_exception_type(TranslatorError),
+                stop=stop_after_attempt(3),
+                wait=wait_fixed(1),
             )
+            def _translate() -> Iterable[TranslatedSubtitle]:
+                completion: ChatCompletion = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        system_message,
+                        {
+                            "role": "user",
+                            "content": _to_prompt_input(batch),
+                        },
+                    ],
+                )
 
-            content = completion.choices[0].message.content
-            yield from create_translated_subtitle(
-                batch, content.split("\n") if content else []
-            )
+                content = completion.choices[0].message.content
+                translated_batch = [*create_translated_subtitle(
+                    batch, content.split("\n") if content else []
+                )]
+
+                cache.put(batch, translated_batch)
+
+                yield from iter(translated_batch)
+
+            yield from _translate()
 
     return translate

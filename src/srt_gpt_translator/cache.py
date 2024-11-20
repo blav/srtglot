@@ -3,9 +3,10 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from .model import Sentence, TranslatedSubtitle
+from .languages import Language
 
 
-@dataclass
+@dataclass(frozen=True)
 class Cache:
     cache_dir: Path | None
 
@@ -31,6 +32,9 @@ class Cache:
             return [TranslatedSubtitle(**item) for item in json.load(f)]
 
     def put(self, key: list[Sentence], value: list[TranslatedSubtitle]):
+        if self.cache_dir is None:
+            return
+        
         entry_path = self._to_entry_path(key)
         with entry_path.open("w") as f:
             json.dump([vars(subtitle) for subtitle in value], f)
@@ -47,3 +51,14 @@ class Cache:
                         sha1.update(line.encode())
 
         return self.cache_dir / (sha1.hexdigest() + ".json")
+    
+    @staticmethod
+    def create(cache_dir: Path | None, language: Language) -> "Cache":
+        if cache_dir is None:
+            return Cache(cache_dir=None)
+        
+        cache_dir = cache_dir / language.name
+        if not cache_dir.exists():
+            cache_dir.mkdir(parents=True)
+
+        return Cache(cache_dir=cache_dir)
