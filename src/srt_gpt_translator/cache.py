@@ -52,13 +52,15 @@ class Cache:
 
         return self.cache_dir / (sha1.hexdigest() + ".json")
 
-    @staticmethod
-    def create(cache_dir: Path | None, language: Language) -> "Cache":
-        if cache_dir is None:
-            return Cache(cache_dir=None)
+    @classmethod
+    def create(cls, cache_dir: Path | None, language: Language) -> "Cache":
+        if cache_dir is not None:
+            cache_dir = cache_dir.expanduser().resolve()
+            if cache_dir is None:
+                return Cache(cache_dir=None)
 
-        cache_dir = cache_dir / language.name
-        if not cache_dir.exists():
-            cache_dir.mkdir(parents=True)
+            cache_dir = cache_dir / language.name
+            if not cache_dir.exists():
+                cache_dir.mkdir(parents=True)
 
         return Cache(cache_dir=cache_dir)

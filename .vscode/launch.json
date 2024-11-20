@@ -13,11 +13,11 @@
             "justMyCode": false,
             "args": [
                 "--target-language",
-                "french",
+                "zh",
                 "--input",
                 "../tests/hod.srt",
-                "--limit",
-                "3"
+                "--max-attempts",
+                "10",
             ],
         },
         {

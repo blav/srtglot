@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from srt_gpt_translator.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
 from srt_gpt_translator.translator import _to_prompt_input, translator
 from srt_gpt_translator.languages import Language
+from srt_gpt_translator.statistics import Statistics
 from bs4 import BeautifulSoup
 import pytest
 
@@ -56,6 +57,8 @@ def translator_params() -> dict:
         "language": Language.EN,
         "max_tokens": 100,
         "api_key": "sk-xxx",
+        "max_attempts": 3,
+        "statistics": Statistics(),
     }
 
 

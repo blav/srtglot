@@ -5,16 +5,17 @@ from .parser import parse
 from .translator import translator
 from .sentence import collect_sentences
 from .languages import Language
+from .statistics import Statistics
 from rich.progress import Progress
 
 
 @click.command()
 @click.option(
     "--target-language",
-    "-l",
+    "-t",
     required=True,
     help="The target language to translate the subtitle text into.",
-    type=click.Choice([lang.name for lang in Language]),
+    type=click.Choice([lang.name.lower() for lang in Language]),
 )
 @click.option(
     "--input",
@@ -40,7 +41,7 @@ from rich.progress import Progress
 )
 @click.option(
     "--max-tokens",
-    "-t",
+    "-x",
     help="Sentence batch max size in tokens.",
     default=os.environ.get("MAX_TOKENS", 100),
     show_default=True,
@@ -54,13 +55,22 @@ from rich.progress import Progress
     show_default=True,
     type=click.Path(exists=False, dir_okay=True, file_okay=False, path_type=Path),
 )
+@click.option(
+    "--max-attempts",
+    "-a",
+    help="Max number of attempts when translating a sentence batch.",
+    default=os.environ.get("MAX_ATTEMPTS", 3),
+    show_default=True,
+    type=int,
+)
 def main(
-    target_language: Language,
+    target_language: str,
     input: Path,
     limit: int,
     model: str,
     max_tokens: int,
     cache_dir: Path,
+    max_attempts: int,
 ):
     api_key = os.environ["OPENAI_API_KEY"]
     if not api_key:
@@ -71,23 +81,31 @@ def main(
     if not cache_dir.exists():
         cache_dir.mkdir(parents=True)
 
+    language = Language[target_language.upper()]
+
+    statistics = Statistics()
     translate = translator(
         model=model,
-        language=target_language,
+        language=language,
         max_tokens=max_tokens,
         limit=limit,
         api_key=api_key,
-        cache_dir=Path(os.environ.get("CACHE_DIR", ".cache")),
+        cache_dir=Path(os.environ.get("CACHE_DIR", "~/.cache/srtx")),
+        max_attempts=max_attempts,
+        statistics=statistics,
     )
 
     subtitles = [*parse(input)]
     sentences = collect_sentences(iter(subtitles))
 
-    with Progress() as progress:
-        task = progress.add_task("Translating subtitles...", total=len(subtitles))
-        for translated_sub in translate(sentences):
-            progress.update(task, advance=1)
-            print(translated_sub)
+    try:
+        with Progress() as progress:
+            task = progress.add_task("Translating subtitles...", total=len(subtitles))
+            for translated_sub in translate(sentences):
+                progress.update(task, advance=1)
+                print(translated_sub)
+    finally:
+        print(statistics)
 
 
 if __name__ == "__main__":

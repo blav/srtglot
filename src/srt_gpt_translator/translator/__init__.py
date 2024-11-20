@@ -7,12 +7,19 @@ from itertools import islice
 import openai
 from openai.types.chat import ChatCompletion
 from jinja2 import Template
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_fixed,
+    RetryCallState,
+)
 
-from .model import Sentence, TranslatedSubtitle, TranslatorError
-from .sentence import sentences_batcher
-from .cache import Cache
-from .languages import Language
+from ..model import Sentence, TranslatedSubtitle, TranslatorError
+from ..sentence import sentences_batcher
+from ..cache import Cache
+from ..languages import Language
+from ..statistics import Statistics
 
 
 @lru_cache
@@ -55,7 +62,9 @@ def translator(
     max_tokens: int,
     api_key: str,
     limit: int = 0,
+    statistics: Statistics,
     cache_dir: Optional[Path] = None,
+    max_attempts: int = 3,
 ) -> Callable[[Iterable[Sentence]], Iterable[TranslatedSubtitle]]:
     batcher = sentences_batcher(model, max_tokens)
     cache = Cache.create(cache_dir=cache_dir, language=language)
@@ -68,12 +77,13 @@ def translator(
     client = _create_openai_client(api_key=api_key)
 
     def create_translated_subtitle(
-        batch: list[Sentence], completion: list[str]
+        batch: list[Sentence], completion: list[str], attempt_number: int
     ) -> Iterable[TranslatedSubtitle]:
         if len(_to_text(batch)) != len(completion):
             raise TranslatorError(
+                f"Attempt {attempt_number}. "
                 f"Number of sentences in original and translated text must match. "
-                f"Original: {len(batch)}, Translated: {len(completion)}"
+                f"Original: {len(_to_text(batch))}, Translated: {len(completion)}"
             )
 
         completion_iter = iter(completion)
@@ -103,12 +113,18 @@ def translator(
                 yield from cached
                 continue
 
+            def inject_retry_count(retry_state: RetryCallState):
+                retry_state.kwargs['attempt_number'] = retry_state.attempt_number
+
             @retry(
                 retry=retry_if_exception_type(TranslatorError),
-                stop=stop_after_attempt(3),
-                wait=wait_fixed(1),
+                stop=stop_after_attempt(max_attempts),
+                wait=wait_fixed(3),
+                before=inject_retry_count,
+                reraise=True,
             )
-            def _translate() -> Iterable[TranslatedSubtitle]:
+            @statistics.register_retry("translate_batch")
+            def translate_batch(attempt_number=None) -> list[TranslatedSubtitle]:
                 completion: ChatCompletion = client.chat.completions.create(
                     model=model,
                     messages=[
@@ -123,14 +139,14 @@ def translator(
                 content = completion.choices[0].message.content
                 translated_batch = [
                     *create_translated_subtitle(
-                        batch, content.split("\n") if content else []
+                        batch, content.split("\n") if content else [], attempt_number
                     )
                 ]
 
                 cache.put(batch, translated_batch)
 
-                yield from iter(translated_batch)
+                return translated_batch
 
-            yield from _translate()
+            yield from translate_batch()
 
     return translate
