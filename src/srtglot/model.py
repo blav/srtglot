@@ -6,11 +6,6 @@ from typing import Iterable
 from bs4 import BeautifulSoup
 
 
-class TranslatorError(ValueError):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-
 @dataclass(frozen=True)
 class Multiline:
     lines: list[str]
@@ -29,7 +24,7 @@ class Subtitle:
     def translate(self, translated_text: list[str]) -> "TranslatedSubtitle":
         lines_count = sum([len(block.lines) for block in self.text])
         if lines_count != len(translated_text):
-            raise TranslatorError(
+            raise ValueError(
                 f"Number of lines in original and translated text must match. "
                 f"Original: {len(self.text)}, Translated: {len(translated_text)}"
             )

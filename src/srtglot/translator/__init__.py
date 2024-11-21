@@ -12,6 +12,15 @@ from ..sentence import sentences_batcher, Batcher
 from ..cache import Cache
 from ..languages import Language
 from ..statistics import Statistics
+from .adaptive import adaptive_map
+
+
+class TranslatorError(ValueError):
+    batch: list[Sentence]
+    completions: list[str]
+
+    def __init__(self, batch: list[Sentence], completions: list[str], *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 @lru_cache
@@ -102,10 +111,36 @@ def translator(
         if context.limit > 0:
             batches = islice(batches, context.limit)
 
-        for batch in batches:
-            yield from translate_batch(
+        def mapper(batch: list[Sentence]) -> list[TranslatedSubtitle]:
+            return translate_batch(
                 context=context,
                 batch=batch,
+            )
+
+        def fallback_mapper(
+            sentence: Sentence, exception: TranslatorError
+        ) -> list[TranslatedSubtitle]:
+            return [
+                TranslatedSubtitle.create(
+                    start=sub.start,
+                    end=sub.end,
+                    text="\n".join(
+                        [
+                            line.strip()
+                            for multiline in sub.text
+                            for line in multiline.lines
+                        ]
+                    ),
+                )
+                for sub in sentence.blocks
+            ]
+
+        for batch in batches:
+            yield from adaptive_map(
+                batch,
+                mapper,
+                fallback_mapper,
+                TranslatorError,
             )
 
     return translate

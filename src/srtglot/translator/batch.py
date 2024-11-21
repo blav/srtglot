@@ -10,8 +10,8 @@ from tenacity import (
     RetryCallState,
 )
 
-from ..model import Sentence, TranslatedSubtitle, TranslatorError
-from . import Context
+from ..model import Sentence, TranslatedSubtitle
+from . import Context, TranslatorError
 
 
 def _to_text(batch: list[Sentence]) -> list[str]:
@@ -39,9 +39,11 @@ def map_to_translated_subtitle(
 ) -> list[TranslatedSubtitle]:
     if len(_to_text(batch)) != len(translations):
         raise TranslatorError(
+            batch,
+            translations,
             f"Attempt {attempt_number}. "
             f"Number of sentences in original and translated text must match. "
-            f"Original: {len(_to_text(batch))}, Translated: {len(translations)}"
+            f"Original: {len(_to_text(batch))}, Translated: {len(translations)}",
         )
 
     completion_iter = iter(translations)
@@ -49,7 +51,9 @@ def map_to_translated_subtitle(
     for sentence in batch:
         delimiter = next(completion_iter)
         if not re.match(r"\[sentence \d+\]", delimiter):
-            raise TranslatorError(f"delimiter expected, got {delimiter}")
+            raise TranslatorError(
+                batch, translations, f"delimiter expected, got {delimiter}"
+            )
 
         for sub in sentence.blocks:
             result.append(
@@ -81,7 +85,7 @@ def translate_batch(
         stop=stop_after_attempt(context.max_attempts),
         before=inject_retry_count,
         retry=retry_if_exception_type(
-            (TranslatorError, openai.APITimeoutError, openai.APIConnectionError)
+            (openai.APITimeoutError, openai.APIConnectionError)
         ),
     )
     @context.statistics.register_retry("translate_batch")

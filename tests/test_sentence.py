@@ -35,9 +35,7 @@ def test_should_batch_sentences():
     with ExitStack() as stack:
         counter = MagicMock()
         counter.side_effect = [2, 1, 1, 3, 2, 1]
-        token_counter = stack.enter_context(
-            patch("srtglot.sentence.token_counter")
-        )
+        token_counter = stack.enter_context(patch("srtglot.sentence.token_counter"))
         token_counter.return_value = counter
 
         s1 = MagicMock()
