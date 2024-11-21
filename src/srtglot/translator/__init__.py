@@ -36,6 +36,7 @@ class Context:
     model: str
     statistics: Statistics
     batcher: Batcher
+    limit: int
 
     @classmethod
     def create(
@@ -48,6 +49,7 @@ class Context:
         api_key: str,
         cache_dir: Path | None,
         max_attempts: int,
+        limit: int,
     ):
         batcher = sentences_batcher(model, max_tokens)
         cache = Cache.create(cache_dir=cache_dir, language=language)
@@ -67,6 +69,7 @@ class Context:
             model=model,
             statistics=statistics,
             batcher=batcher,
+            limit=limit,
         )
 
 
@@ -76,10 +79,10 @@ def translator(
     language: Language,
     max_tokens: int,
     api_key: str,
-    limit: int = 0,
     statistics: Statistics,
     cache_dir: Optional[Path] = None,
     max_attempts: int = 3,
+    limit: int = 0,
 ) -> Callable[[Iterable[Sentence]], Iterable[TranslatedSubtitle]]:
     context = Context.create(
         model=model,
@@ -89,14 +92,15 @@ def translator(
         statistics=statistics,
         cache_dir=cache_dir,
         max_attempts=max_attempts,
+        limit=limit,
     )
 
     def translate(sentences: Iterable[Sentence]) -> Iterable[TranslatedSubtitle]:
         from .batch import translate_batch
 
         batches = context.batcher(sentences)
-        if limit > 0:
-            batches = islice(batches, limit)
+        if context.limit > 0:
+            batches = islice(batches, context.limit)
 
         for batch in batches:
             yield from translate_batch(
