@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "srt-gpt-translator"
+name = "srtglot"
 version = "0.1.0"
 description = ""
 authors = ["blav <blav@actar.us>"]
 readme = "README.md"
 
 [[tool.poetry.packages]]
-include = "srt_gpt_translator"
+include = "srtglot"
 from = "src"
 
 [tool.poetry.dependencies]
@@ -26,7 +26,7 @@ rich = "*"
 
 
 [tool.poetry.scripts]
-srtglot = "srt_gpt_translator.cli:main"
+srtglot = "srtglot.cli:main"
 
 
 [tool.poetry.group.dev.dependencies]

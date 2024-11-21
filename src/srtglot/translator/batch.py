@@ -36,7 +36,7 @@ def _to_prompt_input(batch: list[Sentence]) -> str:
 
 def map_to_translated_subtitle(
     batch: list[Sentence], translations: list[str], attempt_number: int
-) -> list[TranslatedSubtitle]:
+) -> list[list[TranslatedSubtitle]]:
     if len(_to_text(batch)) != len(translations):
         raise TranslatorError(
             batch,
@@ -55,8 +55,8 @@ def map_to_translated_subtitle(
                 batch, translations, f"delimiter expected, got {delimiter}"
             )
 
-        for sub in sentence.blocks:
-            result.append(
+        result.append(
+            [
                 sub.translate(
                     [
                         next(completion_iter) if line.strip() else ""
@@ -64,7 +64,9 @@ def map_to_translated_subtitle(
                         for line in multiline.lines
                     ]
                 )
-            )
+                for sub in sentence.blocks
+            ]
+        )
 
     return result
 
@@ -73,7 +75,7 @@ def translate_batch(
     *,
     context: Context,
     batch: list[Sentence],
-) -> list[TranslatedSubtitle]:
+) -> list[list[TranslatedSubtitle]]:
     cached = context.cache.get(batch)
     if cached:
         return cached
@@ -89,19 +91,26 @@ def translate_batch(
         ),
     )
     @context.statistics.register_retry("translate_batch")
-    def _translate_batch(attempt_number=None) -> list[TranslatedSubtitle]:
+    def _translate_batch(attempt_number=None) -> list[list[TranslatedSubtitle]]:
+        prompt = _to_prompt_input(batch)
         completion: ChatCompletion = context.client.chat.completions.create(
             model=context.model,
             messages=[
                 context.system_message,
                 openai.types.chat.ChatCompletionUserMessageParam(
                     role="user",
-                    content=_to_prompt_input(batch),
+                    content=prompt,
                 ),
             ],
         )
 
         content = completion.choices[0].message.content
+        context.llm_logger.debug("========================================")
+        context.llm_logger.debug(prompt)
+        context.llm_logger.debug("----------------------------------------")
+        context.llm_logger.debug(content)
+        context.llm_logger.debug("========================================")
+
         translated_batch = map_to_translated_subtitle(
             batch,
             content.split("\n") if content else [],

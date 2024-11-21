@@ -18,6 +18,8 @@
                 "../tests/hod.srt",
                 "--max-attempts",
                 "10",
+                "--llm-log-dir",
+                "${workspaceFolder}/logs"
             ],
         },
         {

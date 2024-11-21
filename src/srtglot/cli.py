@@ -1,11 +1,15 @@
 import os
+import sys
 from pathlib import Path
+from typing import Iterable
 import rich_click as click
 from .parser import parse
 from .translator import translator
 from .sentence import collect_sentences
 from .languages import Language
 from .statistics import Statistics
+from .output import output_text, output_srt
+from .model import TranslatedSubtitle
 from rich.progress import Progress
 
 
@@ -51,7 +55,7 @@ from rich.progress import Progress
     "--cache-dir",
     "-c",
     help="Cache directory for storing language completions.",
-    default=os.environ.get("CACHE_DIR", "~/.cache/srtx"),
+    default=os.environ.get("CACHE_DIR", "~/.cache/srtglot"),
     show_default=True,
     type=click.Path(exists=False, dir_okay=True, file_okay=False, path_type=Path),
 )
@@ -63,6 +67,14 @@ from rich.progress import Progress
     show_default=True,
     type=int,
 )
+@click.option(
+    "--llm-log-dir",
+    "-d",
+    help="Log directory for storing llm logs.",
+    default=os.environ.get("LLM_LOG_DIR"),
+    show_default=True,
+    type=click.Path(exists=False, dir_okay=True, file_okay=False, path_type=Path),
+)
 def main(
     target_language: str,
     input: Path,
@@ -70,6 +82,7 @@ def main(
     model: str,
     max_tokens: int,
     cache_dir: Path,
+    llm_log_dir: Path,
     max_attempts: int,
 ):
     api_key = os.environ["OPENAI_API_KEY"]
@@ -87,7 +100,8 @@ def main(
         max_tokens=max_tokens,
         limit=limit,
         api_key=api_key,
-        cache_dir=Path(os.environ.get("CACHE_DIR", "~/.cache/srtx")),
+        cache_dir=cache_dir.expanduser().resolve() if cache_dir else None,
+        llm_log_dir=llm_log_dir.expanduser().resolve() if llm_log_dir else None,
         max_attempts=max_attempts,
         statistics=statistics,
     )
@@ -98,9 +112,16 @@ def main(
     try:
         with Progress() as progress:
             task = progress.add_task("Translating subtitles...", total=len(subtitles))
-            for translated_sub in translate(sentences):
+            def subtitles_iter() -> Iterable[TranslatedSubtitle]:
+                for batch in translate(sentences):
+                    yield from batch
+                    
+            def update_progress(subtitle: TranslatedSubtitle) -> TranslatedSubtitle:
                 progress.update(task, advance=1)
-                print(translated_sub)
+                return subtitle
+
+            translated_sub = map(update_progress, subtitles_iter())
+            output_srt(input=translated_sub, output=sys.stdout)
     finally:
         print(statistics)
 

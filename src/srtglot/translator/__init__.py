@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, List, Optional
 from pathlib import Path
 from itertools import islice
+from logging import getLogger, Logger, FileHandler, NullHandler
 
 import openai
 from jinja2 import Template
@@ -19,7 +20,7 @@ class TranslatorError(ValueError):
     batch: list[Sentence]
     completions: list[str]
 
-    def __init__(self, batch: list[Sentence], completions: list[str], *args, **kwargs):
+    def __init__(self, batch: List[Sentence], completions: List[str], *args, **kwargs):
         super().__init__(*args, **kwargs)
 
 
@@ -46,6 +47,7 @@ class Context:
     statistics: Statistics
     batcher: Batcher
     limit: int
+    llm_logger: Logger
 
     @classmethod
     def create(
@@ -57,6 +59,7 @@ class Context:
         max_tokens: int,
         api_key: str,
         cache_dir: Path | None,
+        llm_log_dir: Path | None,
         max_attempts: int,
         limit: int,
     ):
@@ -69,6 +72,15 @@ class Context:
         )
 
         client = _create_openai_client(api_key=api_key)
+        llm_handler = (
+            FileHandler(filename=llm_log_dir / "llm.log")
+            if llm_log_dir
+            else NullHandler()
+        )
+
+        llm_logger = getLogger("llm")
+        llm_logger.addHandler(llm_handler)
+        llm_logger.setLevel("DEBUG")
 
         return Context(
             cache=cache,
@@ -79,6 +91,7 @@ class Context:
             statistics=statistics,
             batcher=batcher,
             limit=limit,
+            llm_logger=llm_logger,
         )
 
 
@@ -90,9 +103,10 @@ def translator(
     api_key: str,
     statistics: Statistics,
     cache_dir: Optional[Path] = None,
+    llm_log_dir: Optional[Path] = None,
     max_attempts: int = 3,
     limit: int = 0,
-) -> Callable[[Iterable[Sentence]], Iterable[TranslatedSubtitle]]:
+) -> Callable[[Iterable[Sentence]], Iterable[List[TranslatedSubtitle]]]:
     context = Context.create(
         model=model,
         language=language,
@@ -100,18 +114,19 @@ def translator(
         api_key=api_key,
         statistics=statistics,
         cache_dir=cache_dir,
+        llm_log_dir=llm_log_dir,
         max_attempts=max_attempts,
         limit=limit,
     )
 
-    def translate(sentences: Iterable[Sentence]) -> Iterable[TranslatedSubtitle]:
+    def translate(sentences: Iterable[Sentence]) -> Iterable[List[TranslatedSubtitle]]:
         from .batch import translate_batch
 
         batches = context.batcher(sentences)
         if context.limit > 0:
             batches = islice(batches, context.limit)
 
-        def mapper(batch: list[Sentence]) -> list[TranslatedSubtitle]:
+        def mapper(batch: List[Sentence]) -> List[List[TranslatedSubtitle]]:
             return translate_batch(
                 context=context,
                 batch=batch,
@@ -119,7 +134,7 @@ def translator(
 
         def fallback_mapper(
             sentence: Sentence, exception: TranslatorError
-        ) -> list[TranslatedSubtitle]:
+        ) -> List[TranslatedSubtitle]:
             return [
                 TranslatedSubtitle.create(
                     start=sub.start,

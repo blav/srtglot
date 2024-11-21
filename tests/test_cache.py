@@ -36,11 +36,13 @@ def test_test_should_put_and_get_json_file(sentence: Sentence):
         key = [sentence]
 
         value = [
-            TranslatedSubtitle(
-                start="00:00:00,000",
-                end="00:00:00,000",
-                text=["Hello", "world!"],
-            )
+            [
+                TranslatedSubtitle(
+                    start="00:00:00,000",
+                    end="00:00:00,000",
+                    text="Hello\nworld!",
+                )
+            ]
         ]
 
         cache.put(key, value)
@@ -50,11 +52,13 @@ def test_test_should_put_and_get_json_file(sentence: Sentence):
         assert value_file.is_file()
 
         assert json.loads(value_file.read_text()) == [
-            {
-                "end": "00:00:00,000",
-                "start": "00:00:00,000",
-                "text": ["Hello", "world!"],
-            }
+            [
+                {
+                    "end": "00:00:00,000",
+                    "start": "00:00:00,000",
+                    "text": "Hello\nworld!",
+                }
+            ]
         ]
 
         assert cache.get(key) == value

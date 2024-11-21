@@ -1,3 +1,4 @@
+from functools import reduce
 from typing import Callable, Type, TypeVar, List
 
 
@@ -6,7 +7,7 @@ U = TypeVar("U")
 E = TypeVar("E", bound=BaseException)
 
 Mapper = Callable[[List[T]], List[U]]
-FallbackMapper = Callable[[T, E], List[U]]
+FallbackMapper = Callable[[T, E], U]
 
 
 def adaptive_map(
@@ -23,7 +24,8 @@ def adaptive_map(
             output.extend(mapper(head))
         except exception_type as e:
             if len(head) == 1:
-                output.extend(fallback(head[0], e))
+                output.append(fallback(head[0], e))
+                state = [reduce(lambda x, y: x + y, state)]
                 continue
 
             mid = len(head) // 2

@@ -1,15 +1,23 @@
 import datetime
 from unittest.mock import MagicMock, patch
 from srtglot.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
-from srtglot.translator import _to_prompt_input, translator
+from srtglot.translator import translator
+from srtglot.translator.batch import _to_prompt_input
 from srtglot.languages import Language
 from srtglot.statistics import Statistics
 from bs4 import BeautifulSoup
 import pytest
 
 
-def format_translated(subs: list[TranslatedSubtitle]) -> str:
-    return "\n".join([line.text.strip() for line in subs if line.text.strip()])
+def format_translated(sentences: list[list[TranslatedSubtitle]]) -> str:
+    return "\n".join(
+        [
+            line.text.strip()
+            for sentence in sentences
+            for line in sentence
+            if line.text.strip()
+        ]
+    )
 
 
 def test__to_prompt_input():
@@ -90,11 +98,13 @@ def test_should_get_llm_completions_from_cache_when_cache_is_present(
 ):
     with patch("srtglot.translator.Cache.create") as cache:
         cache.return_value.get.return_value = [
-            TranslatedSubtitle(
-                start="00:00:00,000",
-                end="00:00:00,000",
-                text="Bonjour\nmonde\nComment\nça\nva?",
-            )
+            [
+                TranslatedSubtitle(
+                    start="00:00:00,000",
+                    end="00:00:00,000",
+                    text="Bonjour\nmonde\nComment\nça\nva?",
+                )
+            ]
         ]
 
         translate = translator(**translator_params)

@@ -1,6 +1,6 @@
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from pathlib import Path
 from .model import Sentence, TranslatedSubtitle
 from .languages import Language
@@ -10,35 +10,39 @@ from .languages import Language
 class Cache:
     cache_dir: Path | None
 
-    def get(self, key: list[Sentence]) -> list[TranslatedSubtitle] | None:
+    def get(self, key: list[Sentence]) -> list[list[TranslatedSubtitle]] | None:
         if self.cache_dir is None:
             return None
 
-        entry_path = self._to_entry_path(key)
-        if not entry_path.exists():
-            return None
+        cached = []
+        for sentence in key:
+            entry_path = self._to_entry_path(sentence)
+            if not entry_path.exists():
+                return None
 
-        with entry_path.open("r") as f:
-            return [TranslatedSubtitle(**item) for item in json.load(f)]
+            with entry_path.open("r") as f:
+                cached.append([TranslatedSubtitle(**item) for item in json.load(f)])
 
-    def put(self, key: list[Sentence], value: list[TranslatedSubtitle]):
+        return cached
+
+    def put(self, key: list[Sentence], batch: list[list[TranslatedSubtitle]]):
         if self.cache_dir is None:
             return
 
-        entry_path = self._to_entry_path(key)
-        with entry_path.open("w") as f:
-            json.dump([vars(subtitle) for subtitle in value], f)
+        for sentence, subtitles in zip(key, batch):
+            entry_path = self._to_entry_path(sentence)
+            with entry_path.open("w") as f:
+                json.dump([asdict(subtitle) for subtitle in subtitles], f)
 
-    def _to_entry_path(self, key: list[Sentence]) -> Path:
+    def _to_entry_path(self, key: Sentence) -> Path:
         if self.cache_dir is None:
             raise ValueError("Cache directory is not set")
 
         sha1 = hashlib.sha1()
-        for sentence in key:
-            for block in sentence.blocks:
-                for multiline in block.text:
-                    for line in multiline.lines:
-                        sha1.update(line.encode())
+        for block in key.blocks:
+            for multiline in block.text:
+                for line in multiline.lines:
+                    sha1.update(line.encode())
 
         return self.cache_dir / (sha1.hexdigest() + ".json")
 

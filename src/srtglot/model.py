@@ -1,9 +1,15 @@
 import datetime
 import copy
+from enum import Enum
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Iterable
 from bs4 import BeautifulSoup
+
+
+class OutputFormat(Enum):
+    text = ("text",)
+    srt = ("srt",)
 
 
 @dataclass(frozen=True)
@@ -77,7 +83,7 @@ class TranslatedSubtitle:
         cls, start: datetime.time, end: datetime.time, text: str
     ) -> "TranslatedSubtitle":
         return TranslatedSubtitle(
-            start=start.strftime("%H:%M:%S,%f"),
-            end=end.strftime("%H:%M:%S,%f"),
+            start=start.strftime("%H:%M:%S,%f")[:-3],
+            end=end.strftime("%H:%M:%S,%f")[:-3],
             text=text,
         )
