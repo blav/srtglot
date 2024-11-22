@@ -1,5 +1,5 @@
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 import openai
 from openai.types.chat import ChatCompletion
@@ -113,7 +113,7 @@ async def translate_batch(
 
         translated_batch = map_to_translated_subtitle(
             batch,
-            content.split("\n") if content else [],
+            [c.strip() for c in content.split("\n") if c.strip()] if content else [],
             attempt_number,
         )
 

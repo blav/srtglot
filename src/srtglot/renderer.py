@@ -1,9 +1,11 @@
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 from aiofiles.threadpool.text import AsyncTextIOWrapper
 from .model import TranslatedSubtitle
 
 
-async def render_srt(input: AsyncGenerator[TranslatedSubtitle, None], output: AsyncTextIOWrapper):
+async def render_srt(
+    input: AsyncGenerator[TranslatedSubtitle, None], output: AsyncTextIOWrapper
+):
     index = 0
     async for subtitle in input:
         await output.write(str(index := index + 1))

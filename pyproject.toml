@@ -35,6 +35,7 @@ pytest = "*"
 mypy = "*"
 pytest-asyncio = "*"
 types-aiofiles = "^24.1.0.20240626"
+pre-commit = "^4.0.1"
 
 [build-system]
 requires = ["poetry-core"]
