@@ -4,3 +4,4 @@
 .cache
 .venv
 .pytest_cachelogs
+logs/

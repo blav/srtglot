@@ -34,12 +34,12 @@ class Cache:
             with entry_path.open("w") as f:
                 json.dump([asdict(subtitle) for subtitle in subtitles], f)
 
-    def _to_entry_path(self, key: Sentence) -> Path:
+    def _to_entry_path(self, sentence: Sentence) -> Path:
         if self.cache_dir is None:
             raise ValueError("Cache directory is not set")
 
         sha1 = hashlib.sha1()
-        for block in key.blocks:
+        for block in sentence.blocks:
             for multiline in block.text:
                 for line in multiline.lines:
                     sha1.update(line.encode())

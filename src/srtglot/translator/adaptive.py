@@ -1,5 +1,6 @@
 from functools import reduce
 from typing import Callable, Type, TypeVar, List
+from operator import add
 
 
 T = TypeVar("T")
@@ -25,7 +26,7 @@ def adaptive_map(
         except exception_type as e:
             if len(head) == 1:
                 output.append(fallback(head[0], e))
-                state = [reduce(lambda x, y: x + y, state)]
+                state = [reduce(add, state)]
                 continue
 
             mid = len(head) // 2
