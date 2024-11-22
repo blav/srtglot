@@ -5,3 +5,4 @@
 .venv
 .pytest_cachelogs
 logs/
+hod-*.srt

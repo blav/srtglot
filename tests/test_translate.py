@@ -1,7 +1,7 @@
 import datetime
 from unittest.mock import AsyncMock, patch
 from srtglot.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
-from srtglot.translator import translator
+from srtglot.translator import Context, translator
 from srtglot.translator.batch import _to_prompt_input
 from srtglot.languages import Language
 from srtglot.statistics import Statistics
@@ -9,11 +9,12 @@ from bs4 import BeautifulSoup
 import pytest
 
 
-def format_translated(sentences: list[list[TranslatedSubtitle]]) -> str:
+def format_translated(sentences: list[list[list[TranslatedSubtitle]]]) -> str:
     return "\n".join(
         [
             line.text.strip()
-            for sentence in sentences
+            for batch in sentences
+            for sentence in batch
             for line in sentence
             if line.text.strip()
         ]
@@ -58,21 +59,19 @@ def sentence() -> Sentence:
     )
 
 
-@pytest.fixture
-def translator_params() -> dict:
-    return {
-        "model": "gpt-4o",
-        "language": Language.EN,
-        "max_tokens": 100,
-        "api_key": "sk-xxx",
-        "max_attempts": 3,
-        "statistics": Statistics(),
-    }
+def create_context() -> Context:
+    return Context.create(
+        model="gpt-4o",
+        language=Language.EN,
+        max_tokens=100,
+        api_key="sk-xxx",
+        max_attempts=3,
+        statistics=Statistics(),
+    )
+
 
 @pytest.mark.asyncio
-async def test_should_get_llm_completions_when_cache_is_missing(
-    sentence: Sentence, translator_params: dict
-):
+async def test_should_get_llm_completions_when_cache_is_missing(sentence: Sentence):
     with patch("srtglot.translator._create_openai_client") as create_client:
         client = AsyncMock(name="client")
         create_client.return_value = client
@@ -84,17 +83,18 @@ async def test_should_get_llm_completions_when_cache_is_missing(
         completion.choices = [choice]
         client.chat.completions.create.return_value = completion
 
-        translate = translator(**translator_params)
+        translate = translator(create_context())
 
-        result = [t async for t in translate([sentence])]
+        result = [t async for t in translate([[sentence]])]
         assert (
             format_translated(result)
             == "<i>Bonjour</i><i>monde</i>\n<i>Comment</i><i>ça</i><i>va?</i>"
         )
 
+
 @pytest.mark.asyncio
 async def test_should_get_llm_completions_from_cache_when_cache_is_present(
-    sentence: Sentence, translator_params: dict
+    sentence: Sentence,
 ):
     with patch("srtglot.translator.Cache.create") as cache:
         cache.return_value.get.return_value = [
@@ -107,6 +107,6 @@ async def test_should_get_llm_completions_from_cache_when_cache_is_present(
             ]
         ]
 
-        translate = translator(**translator_params)
-        result = [t async for t in translate([sentence])]
+        translate = translator(create_context())
+        result = [t async for t in translate([[sentence]])]
         assert format_translated(result) == "Bonjour\nmonde\nComment\nça\nva?"

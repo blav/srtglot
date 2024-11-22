@@ -1,18 +1,19 @@
+from itertools import islice
 import os
 import asyncio
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List
 import aiofiles
 from aiofiles.threadpool.text import AsyncTextIOWrapper
 import rich_click as click
 
 from .parser import parse
-from .translator import translator
+from .translator import Context, translator
 from .sentence import collect_sentences
 from .languages import Language
 from .statistics import Statistics
 from .renderer import render_srt
-from .model import TranslatedSubtitle
+from .model import Sentence, TranslatedSubtitle
 from rich.progress import Progress
 
 
@@ -118,28 +119,49 @@ def main(
     language = Language[target_language.upper()]
 
     statistics = Statistics()
-    translate = translator(
+    context = Context.create(
         model=model,
         language=language,
         max_tokens=max_tokens,
-        limit=limit,
         api_key=api_key,
+        statistics=statistics,
         cache_dir=cache_dir.expanduser().resolve() if cache_dir else None,
         llm_log_dir=llm_log_dir.expanduser().resolve() if llm_log_dir else None,
         max_attempts=max_attempts,
-        statistics=statistics,
+        limit=limit,
     )
+
+    translate = translator(context)
 
     subtitles = [*parse(input)]
     sentences = collect_sentences(iter(subtitles))
+    batches = context.batcher(sentences)
+    if context.limit > 0:
+        batches = islice(batches, context.limit)
 
     async def mainloop():
         async with aiofiles.open(output, "w") as output_stream:
+
             async def subtitles_iter() -> AsyncGenerator[TranslatedSubtitle, None]:
-                async for batch in translate(sentences):
-                    for sentence in batch:
-                        progress.update(task, advance=1)
-                        yield sentence
+                async for batch in translate(batches):
+                    for subtitles_list in batch:
+                        for sentence in subtitles_list:
+                            progress.update(task, advance=1)
+                            yield sentence
+
+            async def async_batched(
+                agen: AsyncGenerator[List[Sentence], None], batch_size: int
+            ) -> AsyncGenerator[List[List[Sentence]], None]:
+                batch = []
+                async for item in agen:
+                    batch.append(item)
+                    if len(batch) == parallelism:
+                        yield batch
+                        batch = []
+                if batch:
+                    yield batch
+
+            
 
             await render_srt(input=subtitles_iter(), output=output_stream)
 
