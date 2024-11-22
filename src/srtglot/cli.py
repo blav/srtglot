@@ -1,8 +1,11 @@
 import os
-import sys
+import asyncio
 from pathlib import Path
-from typing import Iterable
+from typing import AsyncGenerator
+import aiofiles
+from aiofiles.threadpool.text import AsyncTextIOWrapper
 import rich_click as click
+
 from .parser import parse
 from .translator import translator
 from .sentence import collect_sentences
@@ -34,7 +37,7 @@ from rich.progress import Progress
     "--output",
     "-o",
     help="The translated srt output file.",
-    required=False,
+    required=True,
     type=click.Path(
         exists=False, dir_okay=False, file_okay=True, writable=True, path_type=Path
     ),
@@ -86,6 +89,14 @@ from rich.progress import Progress
     show_default=True,
     type=click.Path(exists=False, dir_okay=True, file_okay=False, path_type=Path),
 )
+@click.option(
+    "--parallelism",
+    "-p",
+    help="Number of sentence bacthes to translate in parallel.",
+    default=os.environ.get("PARALLELISM", 20),
+    show_default=True,
+    type=int,
+)
 def main(
     target_language: str,
     input: Path,
@@ -96,6 +107,7 @@ def main(
     cache_dir: Path,
     llm_log_dir: Path,
     max_attempts: int,
+    parallelism: int,
 ):
     api_key = os.environ["OPENAI_API_KEY"]
     if not api_key:
@@ -121,25 +133,20 @@ def main(
     subtitles = [*parse(input)]
     sentences = collect_sentences(iter(subtitles))
 
+    async def mainloop():
+        async with aiofiles.open(output, "w") as output_stream:
+            async def subtitles_iter() -> AsyncGenerator[TranslatedSubtitle, None]:
+                async for batch in translate(sentences):
+                    for sentence in batch:
+                        progress.update(task, advance=1)
+                        yield sentence
+
+            await render_srt(input=subtitles_iter(), output=output_stream)
+
     try:
         with Progress() as progress:
             task = progress.add_task("Translating subtitles...", total=len(subtitles))
-
-            def subtitles_iter() -> Iterable[TranslatedSubtitle]:
-                for batch in translate(sentences):
-                    yield from batch
-
-            def update_progress(subtitle: TranslatedSubtitle) -> TranslatedSubtitle:
-                progress.update(task, advance=1)
-                return subtitle
-
-            translated_sub = map(update_progress, subtitles_iter())
-            if output:
-                with output.open("w") as f:
-                    render_srt(input=translated_sub, output=f)
-            else:
-                render_srt(input=translated_sub, output=sys.stdout)
-                
+            asyncio.run(mainloop())
     finally:
         print(statistics)
 

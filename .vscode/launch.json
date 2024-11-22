@@ -20,6 +20,8 @@
                 "10",
                 "--llm-log-dir",
                 "${workspaceFolder}/logs",
+                "--parallelism",
+                "50",
                 "--output",
                 "${workspaceFolder}/hod-fr.srt",
             ],

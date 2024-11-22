@@ -1,15 +1,17 @@
+import pytest
 from srtglot.translator.adaptive import adaptive_map
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 
-def test_adaptive_map():
-    mapper = MagicMock()
+@pytest.mark.asyncio
+async def test_adaptive_map():
+    mapper = AsyncMock()
     mapper.side_effect = lambda x: [int(720 / x) for x in x]
 
-    fallback = MagicMock()
+    fallback = AsyncMock()
     fallback.side_effect = lambda x, e: 0
 
-    assert adaptive_map([1, 2, 3, 0, 4, 5, 6], mapper, fallback, ZeroDivisionError) == [
+    assert await adaptive_map([1, 2, 3, 0, 4, 5, 6], mapper, fallback, ZeroDivisionError) == [
         720,
         360,
         240,

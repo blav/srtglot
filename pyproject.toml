@@ -23,6 +23,7 @@ tiktoken = "*"
 jinja2 = "*"
 tenacity = "*"
 rich = "*"
+aiofiles = "^24.1.0"
 
 
 [tool.poetry.scripts]
@@ -32,6 +33,8 @@ srtglot = "srtglot.cli:main"
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 mypy = "*"
+pytest-asyncio = "*"
+types-aiofiles = "^24.1.0.20240626"
 
 [build-system]
 requires = ["poetry-core"]

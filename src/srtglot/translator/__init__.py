@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, Iterable, List, Optional
+from typing import Callable, Iterable, List, Optional, AsyncGenerator
 from pathlib import Path
 from itertools import islice
 from logging import getLogger, Logger, FileHandler, NullHandler
+import asyncio
 
 import openai
 from jinja2 import Template
@@ -33,14 +34,14 @@ def _get_system_prompt(language: Language) -> str:
     return _get_system_prompt_template().render(language=language.value)
 
 
-def _create_openai_client(*, api_key) -> openai.Client:
-    return openai.Client(api_key=api_key)
+def _create_openai_client(*, api_key) -> openai.AsyncClient:
+    return openai.AsyncClient(api_key=api_key)
 
 
 @dataclass(frozen=True)
 class Context:
     cache: Cache
-    client: openai.Client
+    client: openai.AsyncClient
     max_attempts: int
     system_message: openai.types.chat.ChatCompletionSystemMessageParam
     model: str
@@ -106,7 +107,7 @@ def translator(
     llm_log_dir: Optional[Path] = None,
     max_attempts: int = 3,
     limit: int = 0,
-) -> Callable[[Iterable[Sentence]], Iterable[List[TranslatedSubtitle]]]:
+) -> Callable[[Iterable[Sentence]], AsyncGenerator[List[TranslatedSubtitle], None]]:
     context = Context.create(
         model=model,
         language=language,
@@ -119,20 +120,20 @@ def translator(
         limit=limit,
     )
 
-    def translate(sentences: Iterable[Sentence]) -> Iterable[List[TranslatedSubtitle]]:
+    async def translate(sentences: Iterable[Sentence]) -> AsyncGenerator[List[TranslatedSubtitle], None]:
         from .batch import translate_batch
 
         batches = context.batcher(sentences)
         if context.limit > 0:
             batches = islice(batches, context.limit)
 
-        def mapper(batch: List[Sentence]) -> List[List[TranslatedSubtitle]]:
-            return translate_batch(
+        async def mapper(batch: List[Sentence]) -> List[List[TranslatedSubtitle]]:
+            return await translate_batch(
                 context=context,
                 batch=batch,
             )
 
-        def fallback_mapper(
+        async def fallback_mapper(
             sentence: Sentence, exception: TranslatorError
         ) -> List[TranslatedSubtitle]:
             return [
@@ -151,11 +152,12 @@ def translator(
             ]
 
         for batch in batches:
-            yield from adaptive_map(
+            for result in await adaptive_map(
                 batch,
                 mapper,
                 fallback_mapper,
                 TranslatorError,
-            )
+            ):
+                yield result
 
     return translate

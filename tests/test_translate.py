@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from srtglot.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
 from srtglot.translator import translator
 from srtglot.translator.batch import _to_prompt_input
@@ -69,31 +69,31 @@ def translator_params() -> dict:
         "statistics": Statistics(),
     }
 
-
-def test_should_get_llm_completions_when_cache_is_missing(
+@pytest.mark.asyncio
+async def test_should_get_llm_completions_when_cache_is_missing(
     sentence: Sentence, translator_params: dict
 ):
     with patch("srtglot.translator._create_openai_client") as create_client:
-        client = MagicMock(name="client")
+        client = AsyncMock(name="client")
         create_client.return_value = client
 
-        choice = MagicMock(name="choice")
+        choice = AsyncMock(name="choice")
         choice.message.content = "[sentence 1]\nBonjour\nmonde\nComment\nça\nva?"
 
-        completion = MagicMock(name="completion")
+        completion = AsyncMock(name="completion")
         completion.choices = [choice]
         client.chat.completions.create.return_value = completion
 
         translate = translator(**translator_params)
 
-        result = [*translate([sentence])]
+        result = [t async for t in translate([sentence])]
         assert (
             format_translated(result)
             == "<i>Bonjour</i><i>monde</i>\n<i>Comment</i><i>ça</i><i>va?</i>"
         )
 
-
-def test_should_get_llm_completions_from_cache_when_cache_is_present(
+@pytest.mark.asyncio
+async def test_should_get_llm_completions_from_cache_when_cache_is_present(
     sentence: Sentence, translator_params: dict
 ):
     with patch("srtglot.translator.Cache.create") as cache:
@@ -108,5 +108,5 @@ def test_should_get_llm_completions_from_cache_when_cache_is_present(
         ]
 
         translate = translator(**translator_params)
-        result = [*translate([sentence])]
+        result = [t async for t in translate([sentence])]
         assert format_translated(result) == "Bonjour\nmonde\nComment\nça\nva?"

@@ -71,7 +71,7 @@ def map_to_translated_subtitle(
     return result
 
 
-def translate_batch(
+async def translate_batch(
     *,
     context: Context,
     batch: list[Sentence],
@@ -91,9 +91,9 @@ def translate_batch(
         ),
     )
     @context.statistics.register_retry("translate_batch")
-    def _translate_batch(attempt_number=None) -> list[list[TranslatedSubtitle]]:
+    async def _translate_batch(attempt_number=None) -> list[list[TranslatedSubtitle]]:
         prompt = _to_prompt_input(batch)
-        completion: ChatCompletion = context.client.chat.completions.create(
+        completion: ChatCompletion = await context.client.chat.completions.create(
             model=context.model,
             messages=[
                 context.system_message,
@@ -121,4 +121,4 @@ def translate_batch(
 
         return translated_batch
 
-    return _translate_batch()
+    return await _translate_batch()

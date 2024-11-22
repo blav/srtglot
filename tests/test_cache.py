@@ -10,7 +10,7 @@ import pytest
 
 
 @pytest.fixture
-def sentences():
+def sentences() -> list[Sentence]:
     return [
         Sentence(
             blocks=[
@@ -40,7 +40,7 @@ def test_should_get_none_if_cache_dir_is_none():
     assert cache.get([Sentence]) == None
 
 
-def test_test_should_put_and_get_json_file(sentences: Sentence):
+def test_test_should_put_and_get_json_file(sentences: list[Sentence]):
     now = time()
     with TemporaryDirectory() as tmpdir:
         cache_dir = Path(tmpdir)

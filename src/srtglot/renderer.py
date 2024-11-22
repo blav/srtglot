@@ -1,13 +1,14 @@
-from typing import Iterable, TextIO
-
+from typing import AsyncGenerator
+from aiofiles.threadpool.text import AsyncTextIOWrapper
 from .model import TranslatedSubtitle
 
 
-def render_srt(input: Iterable[TranslatedSubtitle], output: TextIO):
-    for i, subtitle in enumerate(input):
-        output.write(str(i + 1))
-        output.write("\n")
-        output.write(f"{subtitle.start} --> {subtitle.end}")
-        output.write("\n")
-        output.write(subtitle.text)
-        output.write("\n\n")
+async def render_srt(input: AsyncGenerator[TranslatedSubtitle, None], output: AsyncTextIOWrapper):
+    index = 0
+    async for subtitle in input:
+        await output.write(str(index := index + 1))
+        await output.write("\n")
+        await output.write(f"{subtitle.start} --> {subtitle.end}")
+        await output.write("\n")
+        await output.write(subtitle.text)
+        await output.write("\n\n")

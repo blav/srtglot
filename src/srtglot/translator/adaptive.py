@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Callable, Type, TypeVar, List
+from typing import Callable, Type, TypeVar, List, Awaitable
 from operator import add
 
 
@@ -7,11 +7,11 @@ T = TypeVar("T")
 U = TypeVar("U")
 E = TypeVar("E", bound=BaseException)
 
-Mapper = Callable[[List[T]], List[U]]
-FallbackMapper = Callable[[T, E], U]
+Mapper = Callable[[List[T]], Awaitable[List[U]]]
+FallbackMapper = Callable[[T, E], Awaitable[U]]
 
 
-def adaptive_map(
+async def adaptive_map(
     input: List[T],
     mapper: Mapper[T, U],
     fallback: FallbackMapper[T, E, U],
@@ -22,11 +22,11 @@ def adaptive_map(
     while state:
         try:
             head = state.pop(0)
-            output.extend(mapper(head))
+            output.extend(await mapper(head))
         except exception_type as e:
             if len(head) == 1:
-                output.append(fallback(head[0], e))
-                state = [reduce(add, state)]
+                output.append(await fallback(head[0], e))
+                state = [reduce(add, state)] if state else []
                 continue
 
             mid = len(head) // 2
