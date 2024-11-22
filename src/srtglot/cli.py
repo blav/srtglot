@@ -2,7 +2,7 @@ from itertools import islice
 import os
 import asyncio
 from pathlib import Path
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, Generator, List
 import aiofiles
 from aiofiles.threadpool.text import AsyncTextIOWrapper
 import rich_click as click
@@ -142,26 +142,19 @@ def main(
     async def mainloop():
         async with aiofiles.open(output, "w") as output_stream:
 
-            async def subtitles_iter() -> AsyncGenerator[TranslatedSubtitle, None]:
-                async for batch in translate(batches):
-                    for subtitles_list in batch:
-                        for sentence in subtitles_list:
-                            progress.update(task, advance=1)
-                            yield sentence
-
-            async def async_batched(
-                agen: AsyncGenerator[List[Sentence], None], batch_size: int
-            ) -> AsyncGenerator[List[List[Sentence]], None]:
-                batch = []
-                async for item in agen:
-                    batch.append(item)
-                    if len(batch) == parallelism:
-                        yield batch
-                        batch = []
-                if batch:
+            def batched() -> Generator[List[List[Sentence]], None, None]:
+                while batch := list(islice(batches, parallelism)):
                     yield batch
 
-            
+            async def subtitles_iter() -> AsyncGenerator[TranslatedSubtitle, None]:
+                for batch in batched():
+                    tasks = [asyncio.create_task(translate(b)) for b in batch]
+                    results = await asyncio.gather(*tasks)
+                    for result in results:
+                        for subtitles_list in result:
+                            for sentence in subtitles_list:
+                                progress.update(task, advance=1)
+                                yield sentence
 
             await render_srt(input=subtitles_iter(), output=output_stream)
 

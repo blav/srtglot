@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, Iterable, List, Optional, AsyncGenerator
+from typing import Any, Callable, Coroutine, Iterable, List, Optional, AsyncGenerator
 from pathlib import Path
 from itertools import islice
 from logging import getLogger, Logger, FileHandler, NullHandler
@@ -98,13 +98,9 @@ class Context:
 
 def translator(
     context: Context,
-) -> Callable[
-    [Iterable[List[Sentence]]], AsyncGenerator[List[List[TranslatedSubtitle]], None]
-]:
+) -> Callable[[List[Sentence]], Coroutine[Any, Any, List[List[TranslatedSubtitle]]]]:
 
-    async def translate(
-        batches: Iterable[List[Sentence]],
-    ) -> AsyncGenerator[List[List[TranslatedSubtitle]], None]:
+    async def translate(sentences: List[Sentence]) -> List[List[TranslatedSubtitle]]:
         from .batch import translate_batch
 
         async def mapper(batch: List[Sentence]) -> List[List[TranslatedSubtitle]]:
@@ -131,12 +127,11 @@ def translator(
                 for sub in sentence.blocks
             ]
 
-        for batch in batches:
-            yield await adaptive_map(
-                batch,
-                mapper,
-                fallback_mapper,
-                TranslatorError,
-            )
+        return await adaptive_map(
+            sentences,
+            mapper,
+            fallback_mapper,
+            TranslatorError,
+        )
 
     return translate

@@ -33,5 +33,5 @@ async def _test_integration(srt_file: Path):
 
     subtitles = parse(srt_file)
     sentences = [*collect_sentences(subtitles=subtitles)][:50]
-    translated = [t async for t in translate([sentences])]
+    translated = await translate(sentences)
     print(translated)

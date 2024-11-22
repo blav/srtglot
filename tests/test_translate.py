@@ -9,12 +9,11 @@ from bs4 import BeautifulSoup
 import pytest
 
 
-def format_translated(sentences: list[list[list[TranslatedSubtitle]]]) -> str:
+def format_translated(sentences: list[list[TranslatedSubtitle]]) -> str:
     return "\n".join(
         [
             line.text.strip()
-            for batch in sentences
-            for sentence in batch
+            for sentence in sentences
             for line in sentence
             if line.text.strip()
         ]
@@ -85,7 +84,7 @@ async def test_should_get_llm_completions_when_cache_is_missing(sentence: Senten
 
         translate = translator(create_context())
 
-        result = [t async for t in translate([[sentence]])]
+        result = await translate([sentence])
         assert (
             format_translated(result)
             == "<i>Bonjour</i><i>monde</i>\n<i>Comment</i><i>ça</i><i>va?</i>"
@@ -108,5 +107,5 @@ async def test_should_get_llm_completions_from_cache_when_cache_is_present(
         ]
 
         translate = translator(create_context())
-        result = [t async for t in translate([[sentence]])]
+        result = await translate([sentence])
         assert format_translated(result) == "Bonjour\nmonde\nComment\nça\nva?"
