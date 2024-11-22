@@ -13,7 +13,7 @@
             "justMyCode": false,
             "args": [
                 "--target-language",
-                "zh",
+                "fr",
                 "--input",
                 "../tests/hod.srt",
                 "--max-attempts",

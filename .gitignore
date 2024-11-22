@@ -3,4 +3,4 @@
 *.pyc
 .cache
 .venv
-.pytest_cache
+.pytest_cachelogs
