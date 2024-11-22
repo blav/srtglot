@@ -19,7 +19,9 @@
                 "--max-attempts",
                 "10",
                 "--llm-log-dir",
-                "${workspaceFolder}/logs"
+                "${workspaceFolder}/logs",
+                "--output",
+                "${workspaceFolder}/hod-fr.srt",
             ],
         },
         {

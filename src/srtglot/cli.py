@@ -8,7 +8,7 @@ from .translator import translator
 from .sentence import collect_sentences
 from .languages import Language
 from .statistics import Statistics
-from .output import output_text, output_srt
+from .renderer import render_srt
 from .model import TranslatedSubtitle
 from rich.progress import Progress
 
@@ -24,9 +24,20 @@ from rich.progress import Progress
 @click.option(
     "--input",
     "-i",
-    help="The input srt file to translate.",
+    help="The srt input file to translate.",
     required=True,
-    type=click.Path(exists=True, dir_okay=False, file_okay=True, path_type=Path),
+    type=click.Path(
+        exists=True, dir_okay=False, file_okay=True, readable=True, path_type=Path
+    ),
+)
+@click.option(
+    "--output",
+    "-o",
+    help="The translated srt output file.",
+    required=False,
+    type=click.Path(
+        exists=False, dir_okay=False, file_okay=True, writable=True, path_type=Path
+    ),
 )
 @click.option(
     "--limit",
@@ -78,6 +89,7 @@ from rich.progress import Progress
 def main(
     target_language: str,
     input: Path,
+    output: Path,
     limit: int,
     model: str,
     max_tokens: int,
@@ -112,16 +124,22 @@ def main(
     try:
         with Progress() as progress:
             task = progress.add_task("Translating subtitles...", total=len(subtitles))
+
             def subtitles_iter() -> Iterable[TranslatedSubtitle]:
                 for batch in translate(sentences):
                     yield from batch
-                    
+
             def update_progress(subtitle: TranslatedSubtitle) -> TranslatedSubtitle:
                 progress.update(task, advance=1)
                 return subtitle
 
             translated_sub = map(update_progress, subtitles_iter())
-            output_srt(input=translated_sub, output=sys.stdout)
+            if output:
+                with output.open("w") as f:
+                    render_srt(input=translated_sub, output=f)
+            else:
+                render_srt(input=translated_sub, output=sys.stdout)
+                
     finally:
         print(statistics)
 
