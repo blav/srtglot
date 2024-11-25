@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Callable, Coroutine, Iterable, List, Optional, AsyncGenerator
+from typing import Any, Callable, Coroutine, List
 from pathlib import Path
-from itertools import islice
 from logging import getLogger, Logger, FileHandler, NullHandler
-import asyncio
 
 import openai
 from jinja2 import Template
