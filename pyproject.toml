@@ -10,7 +10,7 @@ include = "srtglot"
 from = "src"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.11"
 openai = "*"
 tqdm = "*"
 click = "*"
@@ -23,7 +23,7 @@ tiktoken = "*"
 jinja2 = "*"
 tenacity = "*"
 rich = "*"
-aiofiles = "^24.1.0"
+aiofiles = "*"
 
 
 [tool.poetry.scripts]
@@ -34,8 +34,8 @@ srtglot = "srtglot.cli:main"
 pytest = "*"
 mypy = "*"
 pytest-asyncio = "*"
-types-aiofiles = "^24.1.0.20240626"
-pre-commit = "^4.0.1"
+types-aiofiles = "*"
+pre-commit = "*"
 
 [build-system]
 requires = ["poetry-core"]
