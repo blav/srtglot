@@ -56,4 +56,4 @@ class Cache:
             if not cache_dir.is_dir():
                 raise ValueError(f"{cache_dir} is not a directory")
 
-        return Cache(cache_dir=cache_dir)
+        return cls(cache_dir=cache_dir)

@@ -1,5 +1,4 @@
 import re
-from collections.abc import Iterable
 
 import openai
 from openai.types.chat import ChatCompletion
@@ -12,47 +11,28 @@ from tenacity import (
 
 from .model import Sentence, TranslatedSubtitle
 from .translator import Context, TranslatorError
-
-
-def _to_text(batch: list[Sentence]) -> list[str]:
-    def lines(sentence: Sentence) -> Iterable[str]:
-        for block in sentence.blocks:
-            for multiline in block.text:
-                for line in multiline.lines:
-                    if line.strip():
-                        yield line
-
-    def batch_lines() -> Iterable[str]:
-        for i, sentence in enumerate(batch):
-            yield f"[sentence {i + 1}]"
-            yield from lines(sentence)
-
-    return [*batch_lines()]
-
-
-def _to_prompt_input(batch: list[Sentence]) -> str:
-    return "\n".join(_to_text(batch))
+from .prompt import UserPrompt
 
 
 def _map_to_translated_subtitle(
-    batch: list[Sentence], translations: list[str], attempt_number: int
+    prompt: UserPrompt, translations: list[str], attempt_number: int
 ) -> list[list[TranslatedSubtitle]]:
-    if len(_to_text(batch)) != len(translations):
+    if len(prompt.batch_text) != len(translations):
         raise TranslatorError(
-            batch,
+            prompt.batch,
             translations,
             f"Attempt {attempt_number}. "
             f"Number of sentences in original and translated text must match. "
-            f"Original: {len(_to_text(batch))}, Translated: {len(translations)}",
+            f"Original: {len(prompt.batch_text)}, Translated: {len(translations)}",
         )
 
     completion_iter = iter(translations)
     result = []
-    for sentence in batch:
+    for sentence in prompt.batch:
         delimiter = next(completion_iter)
         if not re.match(r"\[sentence \d+\]", delimiter):
             raise TranslatorError(
-                batch, translations, f"delimiter expected, got {delimiter}"
+                prompt.batch, translations, f"delimiter expected, got {delimiter}"
             )
 
         result.append(
@@ -92,27 +72,20 @@ async def batch_mapper(
     )
     @context.statistics.register_retry("translate_batch")
     async def _translate_batch(attempt_number=None) -> list[list[TranslatedSubtitle]]:
-        prompt = _to_prompt_input(batch)
+        prompt = UserPrompt.create_prompt(batch)
         completion: ChatCompletion = await context.client.chat.completions.create(
             model=context.config.model,
             messages=[
                 context.system_message,
-                openai.types.chat.ChatCompletionUserMessageParam(
-                    role="user",
-                    content=prompt,
-                ),
+                prompt.user_message,
             ],
         )
 
         content = completion.choices[0].message.content
-        context.llm_logger.debug("========================================")
-        context.llm_logger.debug(prompt)
-        context.llm_logger.debug("----------------------------------------")
-        context.llm_logger.debug(content)
-        context.llm_logger.debug("========================================")
+        context.llm_logger(prompt, content)
 
         translated_batch = _map_to_translated_subtitle(
-            batch,
+            prompt,
             [c.strip() for c in content.split("\n") if c.strip()] if content else [],
             attempt_number,
         )

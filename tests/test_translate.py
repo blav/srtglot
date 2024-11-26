@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 from srtglot.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
 from srtglot.translator import Context, translator
-from srtglot.batch import _to_prompt_input
+from srtglot.prompt import UserPrompt
 from srtglot.languages import Language
 from srtglot.config import Config
 from bs4 import BeautifulSoup
@@ -39,7 +39,10 @@ def test__to_prompt_input():
         )
     ]
 
-    assert _to_prompt_input(batch) == "[sentence 1]\nHello\nworld\nHow\nare\nyou\n?"
+    assert (
+        UserPrompt.create_prompt(batch).user_message.get("content")
+        == "[sentence 1]\nHello\nworld\nHow\nare\nyou\n?"
+    )
 
 
 @pytest.fixture

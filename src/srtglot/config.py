@@ -51,7 +51,7 @@ class Config:
         if not target_language:
             raise click.ClickException("Please provide a valid target language.")
 
-        return Config(
+        return cls(
             input=input,
             output=output,
             model=model,
