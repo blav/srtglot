@@ -1,12 +1,14 @@
+import os
 from functools import reduce
 from itertools import islice
 from operator import add
-import os
 import asyncio
 from pathlib import Path
 from collections.abc import AsyncGenerator, Generator
 import aiofiles
+import openai
 import rich_click as click
+from rich.progress import Progress
 
 from .parser import parse
 from .translator import Context, translator
@@ -16,7 +18,6 @@ from .statistics import Statistics
 from .renderer import render_srt
 from .model import Sentence, TranslatedSubtitle
 from .config import Config
-from rich.progress import Progress
 
 
 @click.command()
@@ -135,8 +136,8 @@ def main(
     subtitles = [*parse(input)]
     sentences = collect_sentences(iter(subtitles))
     batches = context.batcher(sentences)
-    if context.limit > 0:
-        batches = islice(batches, context.limit)
+    if config.limit > 0:
+        batches = islice(batches, config.limit)
 
     async def mainloop():
         async with aiofiles.open(output, "w") as output_stream:
@@ -168,6 +169,8 @@ def main(
         with Progress() as progress:
             task = progress.add_task("Translating subtitles...", total=len(subtitles))
             asyncio.run(mainloop())
+    except openai.RateLimitError as e:
+        raise click.ClickException(f"OpenAI API rate limit exceeded. {e}") from e
     finally:
         print(statistics)
 
