@@ -2,6 +2,8 @@ import hashlib
 import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
+import aiofiles
+
 from .model import Sentence, TranslatedSubtitle
 from .languages import Language
 
@@ -10,7 +12,7 @@ from .languages import Language
 class Cache:
     cache_dir: Path | None
 
-    def get(self, key: list[Sentence]) -> list[list[TranslatedSubtitle]] | None:
+    async def get(self, key: list[Sentence]) -> list[list[TranslatedSubtitle]] | None:
         if self.cache_dir is None:
             return None
 
@@ -20,19 +22,21 @@ class Cache:
             if not entry_path.exists():
                 return None
 
-            with entry_path.open("r") as f:
-                cached.append([TranslatedSubtitle(**item) for item in json.load(f)])
+            async with aiofiles.open(entry_path, "r") as f:
+                cached.append(
+                    [TranslatedSubtitle(**item) for item in json.loads(await f.read())]
+                )
 
         return cached
 
-    def put(self, key: list[Sentence], batch: list[list[TranslatedSubtitle]]):
+    async def put(self, key: list[Sentence], batch: list[list[TranslatedSubtitle]]):
         if self.cache_dir is None:
             return
 
         for sentence, subtitles in zip(key, batch):
             entry_path = self._to_entry_path(sentence)
-            with entry_path.open("w") as f:
-                json.dump([asdict(subtitle) for subtitle in subtitles], f)
+            async with aiofiles.open(entry_path, "w") as f:
+                await f.write(json.dumps([asdict(subtitle) for subtitle in subtitles]))
 
     def _to_entry_path(self, sentence: Sentence) -> Path:
         if self.cache_dir is None:

@@ -35,13 +35,14 @@ def sentences() -> list[Sentence]:
     ]
 
 
-def test_should_get_none_if_cache_dir_is_none():
+@pytest.mark.asyncio
+async def test_should_get_none_if_cache_dir_is_none():
     cache = Cache.create(cache_dir=None, language=Language.FR)
-    assert cache.get([Sentence]) == None
+    assert await cache.get([Sentence]) is None
 
 
-def test_test_should_put_and_get_json_file(sentences: list[Sentence]):
-    now = time()
+@pytest.mark.asyncio
+async def test_test_should_put_and_get_json_file(sentences: list[Sentence]):
     with TemporaryDirectory() as tmpdir:
         cache_dir = Path(tmpdir)
         cache = Cache.create(cache_dir=cache_dir, language=Language.FR)
@@ -64,8 +65,8 @@ def test_test_should_put_and_get_json_file(sentences: list[Sentence]):
             ],
         ]
 
-        cache.put(key, value)
-        assert cache.get(key) == value
+        await cache.put(key, value)
+        assert await cache.get(key) == value
 
         value_file_1 = (
             cache_dir / "FR" / "8006426e8c4301d4859b01a26304897c47261d64.json"
@@ -92,4 +93,3 @@ def test_test_should_put_and_get_json_file(sentences: list[Sentence]):
                 "text": "Hello\nworld!",
             }
         ]
-

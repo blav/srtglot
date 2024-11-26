@@ -56,8 +56,8 @@ async def batch_mapper(
     context: Context,
     batch: list[Sentence],
 ) -> list[list[TranslatedSubtitle]]:
-    cached = context.cache.get(batch)
-    if cached:
+    cached = await context.cache.get(batch)
+    if cached is not None:
         return cached
 
     def inject_retry_count(retry_state: RetryCallState):
@@ -70,7 +70,6 @@ async def batch_mapper(
             (openai.APITimeoutError, openai.APIConnectionError)
         ),
     )
-    @context.statistics.register_retry("translate_batch")
     async def _translate_batch(attempt_number=None) -> list[list[TranslatedSubtitle]]:
         prompt = UserPrompt.create_prompt(batch)
         completion: ChatCompletion = await context.client.chat.completions.create(
@@ -90,7 +89,7 @@ async def batch_mapper(
             attempt_number,
         )
 
-        context.cache.put(batch, translated_batch)
+        await context.cache.put(batch, translated_batch)
 
         return translated_batch
 

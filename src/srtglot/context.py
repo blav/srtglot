@@ -6,7 +6,6 @@ import openai
 from .model import Sentence
 from .sentence import sentences_batcher, Batcher
 from .cache import Cache
-from .statistics import Statistics
 from .config import Config
 from .prompt import get_system_prompt, UserPrompt
 from .logging import setup_llm_logging
@@ -29,7 +28,6 @@ class Context:
     config: Config
     cache: Cache
     batcher: Batcher
-    statistics: Statistics
     client: openai.AsyncClient
     system_message: openai.types.chat.ChatCompletionSystemMessageParam
     llm_logger: Callable[[UserPrompt, str | None], None]
@@ -44,7 +42,6 @@ class Context:
             config=config,
             client=_create_openai_client(api_key=config.api_key),
             system_message=get_system_prompt(config),
-            statistics=Statistics(),
             batcher=sentences_batcher(config.model, config.max_tokens),
             llm_logger=setup_llm_logging(config),
             cache=Cache.create(

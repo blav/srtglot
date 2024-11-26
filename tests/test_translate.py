@@ -103,15 +103,19 @@ async def test_should_get_llm_completions_from_cache_when_cache_is_present(
     sentence: Sentence,
 ):
     with patch("srtglot.context.Cache.create") as cache:
-        cache.return_value.get.return_value = [
-            [
-                TranslatedSubtitle(
-                    start="00:00:00,000",
-                    end="00:00:00,000",
-                    text="Bonjour\nmonde\nComment\nça\nva?",
-                )
+
+        async def async_get(*args, **kwargs):
+            return [
+                [
+                    TranslatedSubtitle(
+                        start="00:00:00,000",
+                        end="00:00:00,000",
+                        text="Bonjour\nmonde\nComment\nça\nva?",
+                    )
+                ]
             ]
-        ]
+
+        cache.return_value.get = AsyncMock(side_effect=async_get)
 
         translate = translator(create_context())
         result = await translate([sentence])

@@ -14,7 +14,6 @@ from .parser import parse
 from .translator import Context, translator
 from .sentence import collect_sentences
 from .languages import Language
-from .statistics import Statistics
 from .renderer import render_srt
 from .model import Sentence, TranslatedSubtitle
 from .config import Config
@@ -102,15 +101,15 @@ from .config import Config
     type=int,
 )
 def main(
-    target_language: str,
     input: Path,
     output: Path,
-    limit: int,
+    target_language: str,
     model: str,
     max_tokens: int,
     cache_dir: Path,
     llm_log_dir: Path,
     max_attempts: int,
+    limit: int,
     parallelism: int,
 ):
     config = Config.create_config(
@@ -126,11 +125,7 @@ def main(
         parallelism=parallelism,
     )
 
-    statistics = Statistics()
-    context = Context.create(
-        config=config,
-    )
-
+    context = Context.create(config=config)
     translate = translator(context)
 
     subtitles = [*parse(input)]
@@ -171,8 +166,6 @@ def main(
             asyncio.run(mainloop())
     except openai.RateLimitError as e:
         raise click.ClickException(f"OpenAI API rate limit exceeded. {e}") from e
-    finally:
-        print(statistics)
 
 
 if __name__ == "__main__":
