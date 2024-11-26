@@ -36,6 +36,7 @@ mypy = "*"
 pytest-asyncio = "*"
 types-aiofiles = "*"
 pre-commit = "*"
+black = "*"
 
 [build-system]
 requires = ["poetry-core"]

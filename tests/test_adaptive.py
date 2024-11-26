@@ -1,5 +1,5 @@
 import pytest
-from srtglot.translator.adaptive import adaptive_map
+from srtglot.adaptive import adaptive_map
 from unittest.mock import AsyncMock
 
 
@@ -11,7 +11,9 @@ async def test_adaptive_map():
     fallback = AsyncMock()
     fallback.side_effect = lambda x, e: 0
 
-    assert await adaptive_map([1, 2, 3, 0, 4, 5, 6], mapper, fallback, ZeroDivisionError) == [
+    assert await adaptive_map(
+        [1, 2, 3, 0, 4, 5, 6], mapper, fallback, ZeroDivisionError
+    ) == [
         720,
         360,
         240,
@@ -29,5 +31,7 @@ async def test_adaptive_map():
     assert mapper.call_args_list[4] == (([0],),)
     assert fallback.call_count == 1
     assert fallback.call_args[0][0] == 0
-    assert fallback.call_args[0][1].__repr__() == "ZeroDivisionError('division by zero')"
+    assert (
+        fallback.call_args[0][1].__repr__() == "ZeroDivisionError('division by zero')"
+    )
     assert mapper.call_args_list[5] == (([4, 5, 6],),)

@@ -15,6 +15,7 @@ from .languages import Language
 from .statistics import Statistics
 from .renderer import render_srt
 from .model import Sentence, TranslatedSubtitle
+from .config import Config
 from rich.progress import Progress
 
 
@@ -111,25 +112,22 @@ def main(
     max_attempts: int,
     parallelism: int,
 ):
-    api_key = os.environ["OPENAI_API_KEY"]
-    if not api_key:
-        raise click.ClickException(
-            "Please set the OPENAI_API_KEY environment variable or .env file with your OpenAI API key."
-        )
-
-    language = Language[target_language.upper()]
+    config = Config.create_config(
+        input=input,
+        output=output,
+        target_language=target_language,
+        model=model,
+        max_tokens=max_tokens,
+        cache_dir=cache_dir,
+        llm_log_dir=llm_log_dir,
+        max_attempts=max_attempts,
+        limit=limit,
+        parallelism=parallelism,
+    )
 
     statistics = Statistics()
     context = Context.create(
-        model=model,
-        language=language,
-        max_tokens=max_tokens,
-        api_key=api_key,
-        statistics=statistics,
-        cache_dir=cache_dir.expanduser().resolve() if cache_dir else None,
-        llm_log_dir=llm_log_dir.expanduser().resolve() if llm_log_dir else None,
-        max_attempts=max_attempts,
-        limit=limit,
+        config=config,
     )
 
     translate = translator(context)

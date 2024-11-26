@@ -1,10 +1,11 @@
 import datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 from srtglot.model import Multiline, Sentence, Subtitle, TranslatedSubtitle
 from srtglot.translator import Context, translator
-from srtglot.translator.batch import _to_prompt_input
+from srtglot.batch import _to_prompt_input
 from srtglot.languages import Language
-from srtglot.statistics import Statistics
+from srtglot.config import Config
 from bs4 import BeautifulSoup
 import pytest
 
@@ -60,18 +61,21 @@ def sentence() -> Sentence:
 
 def create_context() -> Context:
     return Context.create(
-        model="gpt-4o",
-        language=Language.EN,
-        max_tokens=100,
-        api_key="sk-xxx",
-        max_attempts=3,
-        statistics=Statistics(),
+        config=Config(
+            model="gpt-4o",
+            target_language=Language.EN,
+            max_tokens=100,
+            api_key="sk-xxx",
+            max_attempts=3,
+            input=Path("input.srt"),
+            output=Path("output.srt"),
+        )
     )
 
 
 @pytest.mark.asyncio
 async def test_should_get_llm_completions_when_cache_is_missing(sentence: Sentence):
-    with patch("srtglot.translator._create_openai_client") as create_client:
+    with patch("srtglot.context._create_openai_client") as create_client:
         client = AsyncMock(name="client")
         create_client.return_value = client
 
@@ -95,7 +99,7 @@ async def test_should_get_llm_completions_when_cache_is_missing(sentence: Senten
 async def test_should_get_llm_completions_from_cache_when_cache_is_present(
     sentence: Sentence,
 ):
-    with patch("srtglot.translator.Cache.create") as cache:
+    with patch("srtglot.context.Cache.create") as cache:
         cache.return_value.get.return_value = [
             [
                 TranslatedSubtitle(

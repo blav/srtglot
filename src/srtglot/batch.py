@@ -10,8 +10,8 @@ from tenacity import (
     RetryCallState,
 )
 
-from ..model import Sentence, TranslatedSubtitle
-from . import Context, TranslatorError
+from .model import Sentence, TranslatedSubtitle
+from .translator import Context, TranslatorError
 
 
 def _to_text(batch: list[Sentence]) -> list[str]:
@@ -34,7 +34,7 @@ def _to_prompt_input(batch: list[Sentence]) -> str:
     return "\n".join(_to_text(batch))
 
 
-def map_to_translated_subtitle(
+def _map_to_translated_subtitle(
     batch: list[Sentence], translations: list[str], attempt_number: int
 ) -> list[list[TranslatedSubtitle]]:
     if len(_to_text(batch)) != len(translations):
@@ -71,7 +71,7 @@ def map_to_translated_subtitle(
     return result
 
 
-async def translate_batch(
+async def batch_mapper(
     *,
     context: Context,
     batch: list[Sentence],
@@ -84,7 +84,7 @@ async def translate_batch(
         retry_state.kwargs["attempt_number"] = retry_state.attempt_number
 
     @retry(
-        stop=stop_after_attempt(context.max_attempts),
+        stop=stop_after_attempt(context.config.max_attempts),
         before=inject_retry_count,
         retry=retry_if_exception_type(
             (openai.APITimeoutError, openai.APIConnectionError)
@@ -94,7 +94,7 @@ async def translate_batch(
     async def _translate_batch(attempt_number=None) -> list[list[TranslatedSubtitle]]:
         prompt = _to_prompt_input(batch)
         completion: ChatCompletion = await context.client.chat.completions.create(
-            model=context.model,
+            model=context.config.model,
             messages=[
                 context.system_message,
                 openai.types.chat.ChatCompletionUserMessageParam(
@@ -111,7 +111,7 @@ async def translate_batch(
         context.llm_logger.debug(content)
         context.llm_logger.debug("========================================")
 
-        translated_batch = map_to_translated_subtitle(
+        translated_batch = _map_to_translated_subtitle(
             batch,
             [c.strip() for c in content.split("\n") if c.strip()] if content else [],
             attempt_number,
@@ -122,3 +122,18 @@ async def translate_batch(
         return translated_batch
 
     return await _translate_batch()
+
+
+async def batch_fallback_mapper(
+    sentence: Sentence, exception: TranslatorError
+) -> list[TranslatedSubtitle]:
+    return [
+        TranslatedSubtitle.create(
+            start=sub.start,
+            end=sub.end,
+            text="\n".join(
+                [line.strip() for multiline in sub.text for line in multiline.lines]
+            ),
+        )
+        for sub in sentence.blocks
+    ]

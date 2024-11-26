@@ -2,13 +2,12 @@ import os
 from pathlib import Path
 
 from srtglot.languages import Language
-from srtglot.statistics import Statistics
 from srtglot.translator import translator, Context
 from srtglot.parser import parse
 from srtglot.sentence import collect_sentences
+from srtglot.config import Config
 
 import pytest
-from fixtures import srt_file
 
 
 @pytest.mark.asyncio
@@ -23,11 +22,14 @@ async def _test_integration(srt_file: Path):
 
     translate = translator(
         Context.create(
-            model=model,
-            api_key=api_key,
-            language=Language.FR,
-            max_tokens=1000,
-            statistics=Statistics(),
+            config=Config(
+                model=model,
+                api_key=api_key,
+                target_language=Language.FR,
+                max_tokens=1000,
+                input=srt_file,
+                output=Path("output.srt"),
+            )
         )
     )
 
