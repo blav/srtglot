@@ -6,3 +6,4 @@
 .pytest_cachelogs
 logs/
 hod-*.srt
+.DS_Store
