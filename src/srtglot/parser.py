@@ -9,6 +9,7 @@ from .model import Subtitle, Multiline
 
 def parse(input: Path) -> Generator[Subtitle, None, None]:
     subs: Iterable[SubRipItem] = open_srt(input)
+    subs = filter(lambda sub: sub.index != 9999, subs)
     for sub in subs:
         soup = BeautifulSoup(sub.text, "html.parser")
         yield Subtitle(

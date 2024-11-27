@@ -20,7 +20,7 @@ def _get_system_prompt_template() -> Template:
 
 def get_system_prompt(config: Config) -> ChatCompletionSystemMessageParam:
     language = config.target_language
-    content = _get_system_prompt_template().render(language=language.value)
+    content = _get_system_prompt_template().render(language=language.value.name)
     return ChatCompletionSystemMessageParam(
         role="system",
         content=content,

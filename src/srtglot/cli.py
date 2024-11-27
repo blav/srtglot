@@ -9,6 +9,7 @@ import aiofiles
 import openai
 import rich_click as click
 from rich.progress import Progress
+import textwrap
 
 from .parser import parse
 from .translator import Context, translator
@@ -162,7 +163,8 @@ def main(
 
     try:
         with Progress() as progress:
-            task = progress.add_task("Translating subtitles...", total=len(subtitles))
+            message = f"Translating {textwrap.shorten(str(input.name), width=40, placeholder="...")} to {target_language} "
+            task = progress.add_task(message, total=len(subtitles))
             asyncio.run(mainloop())
     except openai.RateLimitError as e:
         raise click.ClickException(f"OpenAI API rate limit exceeded. {e}") from e
