@@ -17,6 +17,8 @@ class TranslatorError(ValueError):
 
     def __init__(self, batch: list[Sentence], completions: list[str], *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.batch = batch
+        self.completions = completions
 
 
 def _create_openai_client(*, api_key) -> openai.AsyncClient:
