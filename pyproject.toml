@@ -24,6 +24,7 @@ jinja2 = "*"
 tenacity = "*"
 rich = "*"
 aiofiles = "*"
+moviepy = "*"
 
 
 [tool.poetry.scripts]

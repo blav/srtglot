@@ -77,11 +77,7 @@ def fit_fragments_count(
             return target + [""]
 
         index = split_indices[0][0]
-        target = (
-            target[:index]
-            + strategy.split(target[index])
-            + target[index + 1:]
-        )
+        target = target[:index] + strategy.split(target[index]) + target[index + 1 :]
 
         return expand(target)
 

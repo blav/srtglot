@@ -39,6 +39,21 @@
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
             "console": "integratedTerminal"
+        },
+        // single pytest
+        {
+            "name": "pytest-single",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "justMyCode": false,
+            "args": [
+                "${workspaceFolder}/tests/test_completions.py::test_should_map_to_translated_subtitles"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "console": "integratedTerminal"
         }
     ]
 }

@@ -35,12 +35,6 @@ class Subtitle:
                 f"Original: {len(self.text)}, Translated: {len(translated_text)}"
             )
 
-        def collect_lines() -> Iterable[str]:
-            index = 0
-            for block in self.text:
-                yield "\n".join(translated_text[index : index + len(block.lines)])
-                index += len(block.lines)
-
         soup = copy.deepcopy(self.soup)
         for t, element in zip(translated_text, soup.find_all(string=True)):
             element.replace_with(t if t else "\n")
@@ -68,8 +62,13 @@ class Sentence:
             [l for b in self.blocks for m in b.text for l in m.lines if l.strip()]
         )
 
-    def __len__(self) -> int:
-        return sum([len(b) for b in self.blocks])
+    @cached_property
+    def non_empty_text_lines_count(self) -> int:
+        return len([line for line in self.text_lines if line.strip()])
+
+    @cached_property
+    def text_lines(self) -> list[str]:
+        return [line for block in self.blocks for line in block.text_lines]
 
 
 @dataclass(frozen=True)

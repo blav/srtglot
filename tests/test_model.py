@@ -1,6 +1,6 @@
 from datetime import time
 from pathlib import Path
-from srtglot.model import Subtitle, Multiline
+from srtglot.model import Sentence, Subtitle, Multiline
 from srtglot.parser import parse
 from fixtures import srt_file
 
@@ -30,3 +30,87 @@ def test_should_return_lines():
     )
 
     assert sub.text_lines == ["As the ", "first century", "of the Targaryen dynasty"]
+
+
+def test_should_return_sentence_lines():
+    assert Sentence(
+        blocks=[
+            Subtitle(
+                start=None,
+                end=None,
+                soup=None,
+                text=[
+                    Multiline(
+                        lines=[
+                            "As the ",
+                        ]
+                    ),
+                    Multiline(
+                        lines=[
+                            "first century",
+                            "of the Targaryen dynasty",
+                        ]
+                    ),
+                ],
+            ),
+            Subtitle(
+                start=None,
+                end=None,
+                soup=None,
+                text=[
+                    Multiline(
+                        lines=[
+                            "the last dragon",
+                            "has been killed.",
+                        ]
+                    ),
+                ],
+            ),
+        ]
+    ).text_lines == [
+        "As the ",
+        "first century",
+        "of the Targaryen dynasty",
+        "the last dragon",
+        "has been killed.",
+    ]
+
+
+def test_should_return_sentence_length():
+    sentence = Sentence(
+        blocks=[
+            Subtitle(
+                start=None,
+                end=None,
+                soup=None,
+                text=[
+                    Multiline(
+                        lines=[
+                            "As the ",
+                            "",
+                        ]
+                    ),
+                    Multiline(
+                        lines=[
+                            "first century",
+                            "of the Targaryen dynasty",
+                        ]
+                    ),
+                ],
+            ),
+            Subtitle(
+                start=None,
+                end=None,
+                soup=None,
+                text=[
+                    Multiline(
+                        lines=[
+                            "the last dragon",
+                            "has been killed.",
+                        ]
+                    ),
+                ],
+            ),
+        ]
+    )
+    assert sentence.non_empty_text_lines_count == 5
