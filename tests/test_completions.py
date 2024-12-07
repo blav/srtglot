@@ -99,13 +99,11 @@ def test_should_map_to_translated_subtitles():
             Subtitle(
                 start=now,
                 end=now,
-                soup=BeautifulSoup("<i></i><i>S1</i><i></i>", "html.parser"),
+                soup=BeautifulSoup("<i>S1</i>", "html.parser"),
                 text=[
                     Multiline(
                         lines=[
-                            "",
                             "A1",
-                            "",
                         ]
                     ),
                 ],
@@ -113,14 +111,12 @@ def test_should_map_to_translated_subtitles():
             Subtitle(
                 start=now,
                 end=now,
-                soup=BeautifulSoup("<i></i><i>S2</i><i>s3</i><i></i>", "html.parser"),
+                soup=BeautifulSoup("<i>S2</i><i>S3</i>", "html.parser"),
                 text=[
                     Multiline(
                         lines=[
-                            "",
                             "A2",
                             "A3",
-                            "",
                         ]
                     ),
                 ],
@@ -128,19 +124,23 @@ def test_should_map_to_translated_subtitles():
         ]
     )
 
-    assert map_to_translated_subtitle(
+    result = map_to_translated_subtitle(
         sentences=[sentence1],
         parsed_completions=[["B1", "B2", "B3"]],
         attempt_number=1,
-    ) == [
-        TranslatedSubtitle(
-            start="00:00:12,178",
-            end="00:00:12,178",
-            text="<i></i><i>A1</i><i></i>",
-        ),
-        TranslatedSubtitle(
-            start="00:00:12,178",
-            end="00:00:12,178",
-            text="<i></i><i>S2</i><i>s3</i><i></i>",
-        ),
+    )
+
+    assert result == [
+        [
+            TranslatedSubtitle(
+                start="00:00:12,178",
+                end="00:00:12,178",
+                text="<i>B1</i>",
+            ),
+            TranslatedSubtitle(
+                start="00:00:12,178",
+                end="00:00:12,178",
+                text="<i>B2</i><i>B3</i>",
+            ),
+        ]
     ]

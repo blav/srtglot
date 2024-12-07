@@ -12,43 +12,8 @@ from tenacity import (
 from .model import Sentence, TranslatedSubtitle
 from .translator import Context, TranslatorError
 from .prompt import UserPrompt
-
-
-def _map_to_translated_subtitle(
-    prompt: UserPrompt, translations: list[str], attempt_number: int
-) -> list[list[TranslatedSubtitle]]:
-    if len(prompt.batch_text) != len(translations):
-        raise TranslatorError(
-            prompt.batch,
-            translations,
-            f"Attempt {attempt_number}. "
-            f"Number of sentences in original and translated text must match. "
-            f"Original: {len(prompt.batch_text)}, Translated: {len(translations)}",
-        )
-
-    completion_iter = iter(translations)
-    result = []
-    for sentence in prompt.batch:
-        delimiter = next(completion_iter)
-        if not re.match(r"\[sentence \d+\]", delimiter):
-            raise TranslatorError(
-                prompt.batch, translations, f"delimiter expected, got {delimiter}"
-            )
-
-        result.append(
-            [
-                sub.translate(
-                    [
-                        next(completion_iter) if line.strip() else ""
-                        for multiline in sub.text
-                        for line in multiline.lines
-                    ]
-                )
-                for sub in sentence.blocks
-            ]
-        )
-
-    return result
+from .completions import map_to_translated_subtitle, parse_completions
+from .fallback import fit_fragments_count
 
 
 async def batch_mapper(
@@ -83,10 +48,19 @@ async def batch_mapper(
         content = completion.choices[0].message.content
         context.llm_logger(prompt, content)
 
-        translated_batch = _map_to_translated_subtitle(
-            prompt,
-            [c.strip() for c in content.split("\n") if c.strip()] if content else [],
-            attempt_number,
+        parsed_completions = parse_completions(batch, content or "")
+        tokenization = context.config.target_language.value.tokenization
+        parsed_completions = [
+            fit_fragments_count(
+                tokenization,
+                sentence.non_empty_text_lines_count,
+                parsed_completion,
+            )
+            for sentence, parsed_completion in zip(batch, parsed_completions)
+        ]
+
+        translated_batch = map_to_translated_subtitle(
+            batch, parsed_completions, attempt_number
         )
 
         await context.cache.put(batch, translated_batch)
@@ -97,15 +71,6 @@ async def batch_mapper(
 
 
 async def batch_fallback_mapper(
-    sentence: Sentence, exception: TranslatorError
+    *, context: Context, sentence: Sentence, exception: TranslatorError
 ) -> list[TranslatedSubtitle]:
-    return [
-        TranslatedSubtitle.create(
-            start=sub.start,
-            end=sub.end,
-            text="\n".join(
-                [line.strip() for multiline in sub.text for line in multiline.lines]
-            ),
-        )
-        for sub in sentence.blocks
-    ]
+    return (await batch_mapper(context=context, batch=[sentence]))[0]

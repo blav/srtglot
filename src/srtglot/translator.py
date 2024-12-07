@@ -18,11 +18,18 @@ def translator(
                 context=context,
                 batch=batch,
             )
+        
+        async def fallback_mapper(sentence: Sentence, exception: TranslatorError) -> list[TranslatedSubtitle]:
+            return await batch_fallback_mapper(
+                context=context,
+                sentence=sentence,
+                exception=exception,
+            )
 
         return await adaptive_map(
             sentences,
             mapper,
-            batch_fallback_mapper,
+            fallback_mapper,
             TranslatorError,
         )
 
