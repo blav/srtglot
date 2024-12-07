@@ -19,7 +19,6 @@ from .renderer import render_srt
 from .model import Sentence, TranslatedSubtitle
 from .config import Config
 
-
 @click.command()
 @click.option(
     "--target-language",
@@ -72,10 +71,16 @@ from .config import Config
 @click.option(
     "--cache-dir",
     "-c",
-    help="Cache directory for storing language completions.",
+    help="Cache directory for storing language completions. Ignored when --no-cache is set.",
     default=os.environ.get("CACHE_DIR", "~/.cache/srtglot"),
     show_default=True,
     type=click.Path(exists=False, dir_okay=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--no-cache",
+    "-n",
+    help="Disable caching of translated subtitles.",
+    is_flag=True,
 )
 @click.option(
     "--max-attempts",
@@ -112,6 +117,7 @@ def main(
     max_attempts: int,
     limit: int,
     parallelism: int,
+    no_cache: bool,
 ):
     config = Config.create_config(
         input=input,
@@ -119,7 +125,7 @@ def main(
         target_language=target_language,
         model=model,
         max_tokens=max_tokens,
-        cache_dir=cache_dir,
+        cache_dir=cache_dir if not no_cache else None,
         llm_log_dir=llm_log_dir,
         max_attempts=max_attempts,
         limit=limit,
