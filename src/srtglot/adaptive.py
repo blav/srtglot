@@ -1,6 +1,5 @@
 from functools import reduce
-from typing import TypeVar
-from collections.abc import Callable, Awaitable
+from typing import TypeVar, Callable, Awaitable
 from operator import add
 
 

@@ -4,7 +4,7 @@ from itertools import islice
 from operator import add
 import asyncio
 from pathlib import Path
-from collections.abc import AsyncGenerator, Generator
+from typing import AsyncGenerator, Generator
 import aiofiles
 import openai
 import rich_click as click

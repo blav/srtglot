@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Generator, Iterable
-from dataclasses import dataclass
 from pysrt import open as open_srt
 from pysrt.srtitem import SubRipItem
 from bs4 import BeautifulSoup

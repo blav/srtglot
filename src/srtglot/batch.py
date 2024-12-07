@@ -1,5 +1,3 @@
-import re
-
 import openai
 from openai.types.chat import ChatCompletion
 from tenacity import (

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from pathlib import Path
-from collections.abc import Iterable
+from typing import Iterable
 
 from openai.types.chat import (
     ChatCompletionSystemMessageParam,

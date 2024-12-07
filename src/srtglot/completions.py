@@ -1,7 +1,6 @@
 import re
 from typing import Iterable
 
-from srtglot.prompt import UserPrompt
 
 from .model import Sentence, TranslatedSubtitle
 from .context import TranslatorError
